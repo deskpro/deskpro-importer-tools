@@ -1,4 +1,4 @@
-Download the importer tool: [Click here to download](https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip)
+## Download the importer tool: [Click here to download](https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip)
 
 ---
 
