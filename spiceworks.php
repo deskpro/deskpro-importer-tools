@@ -47,6 +47,8 @@ $CONFIG['ticket_attachments_path'] = '/path/to/spiceworks/data/uploads/Ticket';
 # Do not edit below this line
 ########################################################################################################################
 
+require 'src/inc.php';
+
 if (empty($CONFIG['db_path']) || !is_file($CONFIG['db_path']) || !is_readable($CONFIG['db_path'])) {
     echo "Invalid database file: {$CONFIG['db_path']}\n";
     exit(1);
@@ -77,7 +79,6 @@ $CONFIG['ticket_attachments_import_path'] = rtrim($CONFIG['ticket_attachments_im
 // Setup
 //--------------------
 
-require 'src/inc.php';
 $writer = create_writer();
 $writer->enableBatchedMode();
 

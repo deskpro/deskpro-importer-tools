@@ -35,6 +35,11 @@ class Writer
     private $batched_mode = false;
 
     /**
+     * @var int
+     */
+    private $batch_size = 1000;
+
+    /**
      * @var array
      */
     private $data_keys = array(
@@ -50,6 +55,7 @@ class Writer
                 'agent_team' => 1, 'status' => 1, 'date_created' => 1, 'date_resolved' => 1,
                 'date_archived' => 1, 'subject' => 1, 'language' => 1, 'category' => 1,
                 'workflow' => 1, 'product' => 1, 'organization' => 1, 'is_hold' => 1,
+                'priority' => 1,
                 'urgency' => 1, 'participants' => 1,  'labels' => 1, 'messages' => 1,
                 'custom_fields' => 1, 'log_message' => 1,
             ),
@@ -329,7 +335,13 @@ class Writer
             }
         }
 
-        $res = file_put_contents($full_path, $this->encodeData($data));
+        $v = $this->encodeData($data);
+        if (!$v) {
+            print_r($data);
+            var_dump(json_encode($data));
+            exit;
+        }
+        $res = file_put_contents($full_path, $v);
 
         if (!isset($this->done_ids[$type])) {
             $this->done_ids[$type] = array();
@@ -407,7 +419,7 @@ class Writer
             $batch = $this->id_batch_map[$type][$id];
         } else {
             if ($this->batched_mode) {
-                if ($this->count % 1000 === 0) {
+                if ($this->count % $this->batch_size === 0) {
                     $this->batch++;
                 }
             }
@@ -419,6 +431,14 @@ class Writer
         }
 
         return $this->data_path . DIRECTORY_SEPARATOR . $batch . DIRECTORY_SEPARATOR . $type . DIRECTORY_SEPARATOR . $prefix . $id_enc . '.json';
+    }
+
+    /**
+     * @return int
+     */
+    public function getBatchSize()
+    {
+        return $this->batch_size;
     }
 
     /**
