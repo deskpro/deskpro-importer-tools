@@ -99,6 +99,12 @@ class Writer
                 'language' => 1, 'organization' => 1, 'organization_position' => 1,
                 'emails' => 1, 'labels' => 1, 'user_groups' => 1, 'contact_data' => 1, 'custom_fields' => 1,
             )
+        ),
+
+        'organization' => array(
+            'allowed' => array(
+                'oid' => 1, 'name' => 1, 'contact_data' => 1, 'custom_fields' => 1, 'labels' => 1
+            )
         )
     );
 
@@ -244,6 +250,15 @@ class Writer
         return $data;
     }
 
+    private function processOrganization(array $data)
+    {
+        if (empty($data['labels'])) {
+            $data['labels'] = array();
+        }
+
+        return $data;
+    }
+
     /**
      * @param array $grouped_items
      */
@@ -281,6 +296,23 @@ class Writer
         }
 
         $this->writeFile('people', $data['oid'], $data);
+        $this->writeArray($extracted);
+    }
+
+    /**
+     * @param array $data
+     * @param bool|false $skip_if_done
+     */
+    public function organization(array $data, $skip_if_done = false)
+    {
+        $extracted = $super = array();
+        $data = $this->processDataArray('organization', $data, $super, $extracted);
+
+        if ($skip_if_done && isset($this->done_ids['organizations'][$data['oid']])) {
+            return;
+        }
+
+        $this->writeFile('organizations', $data['oid'], $data);
         $this->writeArray($extracted);
     }
 
