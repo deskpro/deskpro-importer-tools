@@ -1,0 +1,44 @@
+{
+  "oid": "2",
+  "import_map_key": null,
+  "ref": "AAABBBCCC",
+  "department": null,
+  "person": "user@example.com",
+  "agent": "user@example.com",
+  "agent_team": null,
+  "status": "awaiting_agent",
+  "date_created": "2015-02-06 19:03:43",
+  "date_resolved": null,
+  "date_archived": null,
+  "subject": "Subject 2",
+  "priority": {
+    "oid": 0,
+    "title": "high",
+    "value": 50
+  },
+  "language": "en_US",
+  "category": null,
+  "workflow": null,
+  "product": null,
+  "organization": null,
+  "is_hold": false,
+  "urgency": 1,
+  "participants": [],
+  "labels": [
+    "label1",
+    "label2"
+  ],
+  "messages": [
+    {
+      "oid": 1,
+      "person": "user@example.com",
+      "date_created": "2015-02-06 19:03:43",
+      "message_text": "Reply content",
+      "message_html": null,
+      "is_note": false,
+      "attachments": []
+    }
+  ],
+  "custom_fields": [],
+  "log_message": "Imported from ZenDesk"
+}

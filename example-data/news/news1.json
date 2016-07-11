@@ -1,0 +1,18 @@
+{
+  "oid": "1",
+  "import_map_key": null,
+  "person": "user@example.com",
+  "language": "english",
+  "slug": "news-slug-1",
+  "title": "News Title 1",
+  "content": "News Content 1",
+  "view_count": 0,
+  "total_rating": 0,
+  "num_comments": 0,
+  "num_ratings": 0,
+  "status": "published",
+  "date_created": "2015-03-05 19:40:10",
+  "date_published": null,
+  "category": "News Category 1",
+  "labels": ["News Label 1"]
+}

@@ -1,0 +1,23 @@
+{
+  "oid": "Some Organization",
+  "import_map_key": null,
+  "name": "Some Organization",
+  "picture": null,
+  "importance": 5,
+  "date_created": "2015-07-30 06:09:01",
+  "contact_data": [
+    {
+      "oid": 1,
+      "contact_type": "mobile",
+      "comment": "some comment",
+      "country_calling_code": "country_calling_code",
+      "number": "number",
+      "type": "type"
+    }
+  ],
+  "custom_fields": [],
+  "labels": [
+    "label1",
+    "label2"
+  ]
+}
