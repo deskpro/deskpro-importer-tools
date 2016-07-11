@@ -17,17 +17,20 @@ Each file in this directory is a separate tool designed to work with a specific 
 open the file and read the instruction at the top of the file. Often you will need to insert a few
 configuration options before running the tool.
 
-## Running the DeskPRO Importer
-
 After you have successfully run one of the export tools, the `data/` directory will be populated with many
 files (perhaps thousands or hundreds of thousands, depending on how much data you are importing).
 
-Now you need to run the DeskPRO tool to import this data. You do this by running the following command from DeskPRO's
-root directory:
+After that, you need to run the special DeskPRO command from the folder on your server that has DeskPRO.
 
-    php cmd.php dp:import:run json --input-path "path/to/data"
+Here's an example putting it all togehter:
 
-Where the path is the path to the `data/` directory here in this tool directory.
+    cd /path/to/deskpro-importer-tools
+    php mytool.php
+
+    # this will run and populate the data/ directory with JSON files
+
+    cd /path/to/deskpro
+    bin/console dp:import:run json --input-path "/path/to/deskpro-importer-tools/data"
 
 ---
 
