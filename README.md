@@ -75,4 +75,18 @@ To help you write these files, you can use the special "writer" which helps writ
         ]
     ]);
 
-You don't have to use this writer of course. You can "manually" write files to the file system so long as the resulting JSON file matches the format demonstrated in the `example-data/`.
+You don't have to use this writer of course. You can "manually" write files to the file system so long as the resulting JSON file matches the format demonstrated in the `example-data/`. For example:
+
+    $path = __DIR__.'/data/tickets/123.json';
+    file_put_contents($path, json_encode([
+        'id' => '123',
+        'department' => 'Sales',
+        'person' => 'user@example.com',
+        'message' => [
+            [
+                'message_text' => 'Hello',
+                'date_created' => '2016-01-01 00:01:01',
+                'person' => 'user@example.com'
+            ]
+        ]
+    ]));
