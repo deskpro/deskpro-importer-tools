@@ -1,4 +1,5 @@
 <?php
+
 /*
  * This tool will connect to your Kayako database and export your data into the data/ directory in
  * the standard DeskPRO Import Format.
@@ -8,14 +9,27 @@
  *
  * 1) Edit the values in the CONFIG section below.
  *
- * 2) Run this script from the command-line:
+ * 2) Copy this script in to your DeskPRO bin directory. For example:
  *
- *     $ cd /path/to/deskpro-importer-tools
- *     $ php kayako.php
+ *     $ cp kayako.php /path/to/deskpro/bin
  *
- * 3) Run the DeskPRO import script
+ * 2) Run the import process to fetch all of your data from Kayako:
+ *
  *     $ cd /path/to/deskpro
- *     $ bin/console dp:import:run json --input-path "/path/to/deskpro-importer-tools/data"
+ *     $ bin/console import kayako.php
+ *
+ * 3) You can now optionally verify the integrity of your data:
+ * 
+ *     $ bin/console import:verify
+ *
+ * 4) When you're ready, go ahead and apply the import to your live database:
+ *
+ *     $ bin/console import:apply
+ *
+ * 4) And finally, you can clean up the temporary data files from the fileystem:
+ *
+ *     $ bin/console import:clean
+ * 
  */
 
 ########################################################################################################################
@@ -36,72 +50,35 @@ $CONFIG['dbinfo'] = [
 ];
 
 
-
-
-
 ########################################################################################################################
 # Do not edit below this line
 ########################################################################################################################
-
-require 'src/inc.php';
-
-// TODO verify config here and show friendly error messages if incorrect
 
 //--------------------
 // Setup
 //--------------------
 
-$writer = create_writer();
-$writer->enableBatchedMode();
-
-// TODO proper pdo connection
-$db = new \PDO();
-
-$per_page = 500;
+$writer = $importer->getWriter();
+$output = $importer->getOutput();
+$db     = $importer->getDbConnection($CONFIG['dbinfo']);
 
 //--------------------
 // Tickets and messages
 //--------------------
 
-$ticket_query = $db->prepare("
-    # TODO proper query
-") or die(implode(', ', $db->errorInfo()));
+$output->section("Tickets and Messages");
 
-$message_query = $db->prepare("
-  # TODO proper query
-") or die(implode(', ', $db->errorInfo()));
+$pager = $importer->createPagerForQuery($db, "
+    SELECT *
+    FROM tickets
+    ORDER BY id ASC
+");
 
-$start = 0;
-$offset = 0;
-$count = 0;
+$output->startProgressForPager($pager);
 
-echo "Exporting tickets and messages ";
-
-do {
-    $offset = $start * $per_page;
-    $start++;
-
-    $ticket_query->execute(array($offset)) or die(implode(', ', $db->errorInfo()));
-    $raw_tickets = $ticket_query->fetchAll(\PDO::FETCH_ASSOC);
-
-    foreach ($raw_tickets as $t) {
-        $message_query->execute(array($t['id']));
-        $raw_messages = $message_query->fetchAll(\PDO::FETCH_ASSOC);
-
-        $messages = array();
-        foreach ($raw_messages as $m) {
-            $msg = array(
-                'id'           => $m['xx'],
-                'message_text' => $m['xx'],
-                'date_created' => $m['xx'],
-                'is_note'      => $m['xx'],
-                'person'       => $m['xx']
-            );
-
-            $messages[] = $msg;
-        }
-
-        $ticket = array(
+while ($rawTickets = $pager->next()) {
+    foreach ($rawTickets as $t) {
+        $ticket = [
             'id'            => $t['id'],
             'ref'           => 'ticket-' . $t['id'],
             'department'    => $t['xx'],
@@ -111,60 +88,63 @@ do {
             'date_created'  => $t['xx'],
             'date_resolved' => $t['xx'] ?: null,
             'subject'       => $t['subject'],
-            'messages'      => $messages,
-        );
+            'messages'      => [],
+        ];
+
+        $rawMessages = $db->fetchAll("
+            SELECT *
+            FROM ticket_messages
+            WHERE ticket_id = :ticketId
+            ORDER BY id ASC
+        ", ['ticket_id' => $t['id']]);
+
+        foreach ($rawMessages as $m) {
+            $ticket['messages'][] = [
+                'id'           => $m['xx'],
+                'message_text' => $m['xx'],
+                'date_created' => $m['xx'],
+                'is_note'      => $m['xx'],
+                'person'       => $m['xx']
+            ];
+        }
 
         $writer->ticket($ticket);
 
-        echo ".";
-        $count++;
+        $output->advancePager();
     }
-    if ($raw_tickets) {
-        echo $count;
-    }
-} while($raw_tickets);
+}
 
-echo "\n\n";
+$output->finishSection();
 
 //--------------------
 // Users
 //--------------------
 
-$start = 0;
+$output->section("Users");
 
-$user_query = $db->prepare("
-  # TODO proper query
+$pager = $importer->createPagerForQuery($db, "
+    SELECT *
+    FROM users
+    ORDER BY id ASC
 ");
 
-$start = 0;
-$offset = 0;
-$count = 0;
+$output->startProgressForPager($pager);
 
-echo "Exporting users ";
-
-do {
-    $offset = $start * $per_page;
-    $start++;
-
-    $user_query->execute(array($offset)) or die(implode(', ', $db->errorInfo()));
-    $raw_users = $user_query->fetchAll(\PDO::FETCH_ASSOC);
-    foreach ($raw_users as $u) {
-        $writer->person(array(
+while ($rawUsers = $pager->next()) {
+    foreach ($rawUsers as $u) {
+        $user = [
             'id'         => $u['id'],
-            'emails'     => array($u['xx']),
-            'first_name' => $u['xx'],
-            'last_name'  => $u['xx'],
-            'is_agent'   => $u['xx'],
-            'is_admin'   => $u['xx'],
-        ), true);
-        echo ".";
-        $count++;
-    }
-    if ($raw_users) {
-        echo $count;
-    }
-} while($raw_users);
+            'email'      => $u['email'],
+            'first_name' => $u['first_name'],
+            'last_name'  => $u['last_name']
+        ];
 
-echo "\n\n";
+        $writer->user($user);
 
-echo "All done.\n";
+        $output->advancePager();
+    }
+}
+
+$output->finishSection();
+
+$output->finishProcess();
