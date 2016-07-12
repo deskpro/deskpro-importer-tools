@@ -1,6 +1,6 @@
 {
   "oid": "710618382",
-  "import_map_key": null,
+  "import_map_key": "zd_person",
   "is_agent": true,
   "is_user": false,
   "is_admin": true,
@@ -10,16 +10,27 @@
   "last_name": null,
   "name": "Sergey",
   "override_display_name": null,
-  "password": null,
+  "password": "my password",
   "password_scheme": "plain",
   "timezone": "Europe/Moscow",
   "date_created": "2015-02-06 19:05:35",
-  "language": null,
-  "organization": null,
-  "organization_position": null,
+  "language": "English",
+  "organization": "My organization",
+  "organization_position": "developer",
   "emails": ["user@example.com"],
   "labels": ["label1", "label2"],
   "user_groups": [],
-  "contact_data": [],
+  "contact_data": [
+    {
+      "oid": 1,
+      "contact_type": "skype",
+      "username": "skype_username"
+    },
+    {
+      "oid": 2,
+      "contact_type": "twitter",
+      "username": "twitter_username"
+    }
+  ],
   "custom_fields": []
 }

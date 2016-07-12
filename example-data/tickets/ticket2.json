@@ -1,7 +1,6 @@
 {
   "oid": "2",
   "import_map_key": null,
-  "ref": "AAABBBCCC",
   "department": null,
   "person": "user@example.com",
   "agent": "user@example.com",
@@ -11,11 +10,6 @@
   "date_resolved": null,
   "date_archived": null,
   "subject": "Subject 2",
-  "priority": {
-    "oid": 0,
-    "title": "high",
-    "value": 50
-  },
   "language": "en_US",
   "category": null,
   "workflow": null,

@@ -7,10 +7,6 @@
   "language": "english",
   "end_action": null,
   "slug": "slug-article-1",
-  "total_rating": 0,
-  "num_comments": 0,
-  "num_ratings": 0,
-  "view_count": 0,
   "status": "published",
   "date_created": "2015-01-15 00:00:00",
   "date_published": null,
@@ -20,14 +16,12 @@
   "labels": ["Label 1", "Label 2", "Label 3"],
   "custom_fields": [
     {
-      "oid": "1",
       "key": "Multiple-select box field",
       "value": "Choice 1 > Choice 2"
     }
   ],
   "attachments": [
     {
-      "oid": 0,
       "person": "user@example.com",
       "blob_data": null,
       "blob_url": "",
@@ -39,7 +33,6 @@
   ],
   "comments": [
     {
-      "oid": 0,
       "person_email": "user@example.com",
       "content": "Comment 1",
       "status": "visible",
@@ -50,13 +43,11 @@
   ],
   "translations": [
     {
-      "oid": "0",
       "language": "es_ES",
       "property": "title",
       "value": "Article 1 (es_ES)"
     },
     {
-      "oid": "1",
       "language": "es_ES",
       "property": "content",
       "value": "Content 1 (es_ES)"

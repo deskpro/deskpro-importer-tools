@@ -1,6 +1,6 @@
 {
   "oid": "1",
-  "import_map_key": null,
+  "import_map_key": "zd_feedback",
   "person": "user@example.com",
   "language": "english",
   "title": "Feedback 1",
@@ -8,17 +8,12 @@
   "slug": "feedback-slug-1",
   "popularity": 10,
   "status": "published",
-  "total_rating": 0,
-  "num_comments": 0,
-  "num_ratings": 0,
-  "view_count": 0,
   "category": "Feedback Category 1",
   "labels": ["Feedback Label 1"],
   "date_created": "2015-03-05 19:40:10",
   "date_published": null,
   "attachments": [
     {
-      "oid": 0,
       "person": "user@example.com",
       "blob_data": null,
       "blob_url": "",
