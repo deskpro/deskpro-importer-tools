@@ -1,7 +1,6 @@
 {
   "oid": "1",
   "import_map_key": null,
-  "ref": "A4G7I8Y1RV",
   "department": null,
   "person": "user@example.com",
   "agent": "user@example.com",
@@ -11,11 +10,6 @@
   "date_resolved": null,
   "date_archived": null,
   "subject": "Subject 1",
-  "priority": {
-    "oid": 0,
-    "title": "high",
-    "value": 50
-  },
   "language": null,
   "category": null,
   "workflow": null,
@@ -23,7 +17,7 @@
   "organization": null,
   "is_hold": false,
   "urgency": 1,
-  "participants": [],
+  "participants": ["email_1@example.com", "email_2@example.com"],
   "labels": [
     "label1",
     "label2"

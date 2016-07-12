@@ -1,17 +1,28 @@
 {
   "oid": "1",
-  "title": "Category 1",
   "import_map_key": "zd_article_category",
+  "title": "Category 1",
   "categories": [
     {
-      "oid": "1",
+      "oid": "2",
+      "import_map_key": "zd_article_category",
       "title": "Sub Category 1",
-      "categories": []
+      "categories": [
+        {
+          "oid": "3",
+          "import_map_key": "zd_article_category",
+          "title": "Sub Category 1a",
+          "categories": [],
+          "user_groups": ["registered"]
+        }
+      ]
     },
     {
-      "oid": "2",
+      "oid": "4",
+      "import_map_key": "zd_article_category",
       "title": "Sub Category 2",
-      "categories": []
+      "categories": [],
+      "user_groups": ["everyone", "registered"]
     }
   ]
 }
