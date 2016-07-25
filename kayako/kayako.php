@@ -218,6 +218,7 @@ while ($data = $pager->next()) {
             'status'     => $statusMapping[$n['ticketstatustitle']],
         ];
 
+        // get ticket messages
         $messagePager = $db->getPager('SELECT * FROM swticketposts WHERE ticketid = :ticket_id', [
             'ticket_id' => $n['ticketid'],
         ]);
@@ -242,8 +243,8 @@ while ($data = $pager->next()) {
 
 $output->startSection('Article categories');
 $getArticleCategories = function ($parentId) use ($db, &$getArticleCategories) {
-    $pager = $db->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parentId', [
-        'parentId' => $parentId,
+    $pager = $db->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id', [
+        'parent_id' => $parentId,
     ]);
 
     $categories = [];
@@ -262,4 +263,40 @@ $getArticleCategories = function ($parentId) use ($db, &$getArticleCategories) {
 
 foreach ($getArticleCategories(0) as $category) {
     $writer->writeArticleCategory($category['oid'], $category);
+}
+
+//--------------------
+// Articles
+//--------------------
+
+$output->startSection('Articles');
+$pager = $db->getPager('SELECT * FROM swkbarticles');
+
+// todo need status mapping
+$statusMapping = [
+    1 => 'published',
+];
+
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        $article = [
+            'title'   => $n['subject'],
+            'person'  => $writer->prepareAgentOid($n['creatorid']),
+            'content' => '',
+            'status'  => $statusMapping[$n['articlestatus']],
+        ];
+
+        // get article content
+        $contentPager = $db->getPager('SELECT * FROM swkbarticledata WHERE kbarticleid = :article_id', [
+            'article_id' => $n['kbarticleid'],
+        ]);
+
+        while ($data = $contentPager->next()) {
+            foreach ($data as $c) {
+                $article['content'] .= $c['contents'];
+            }
+        }
+
+        $writer->writeArticle($n['kbarticleid'], $article);
+    }
 }
