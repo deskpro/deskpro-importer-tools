@@ -1,0 +1,21 @@
+{
+  "person": "user@example.com",
+  "language": "english",
+  "title": "Feedback 1",
+  "content": "Feedback Content 1",
+  "popularity": 10,
+  "status": "published",
+  "category": "Feedback Category 1",
+  "labels": ["label 1", "label 2"],
+  "date_created": "2015-03-05 19:40:10",
+  "date_published": null,
+  "attachments": [
+    {
+      "person": "user@example.com",
+      "blob_data": "blob data",
+      "file_name": "file.txt",
+      "content_type": "text/plain"
+    }
+  ],
+  "custom_fields": []
+}

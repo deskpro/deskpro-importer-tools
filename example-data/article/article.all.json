@@ -1,0 +1,41 @@
+{
+  "person": "user@example.com",
+  "title": "Article 1",
+  "content": "Content 1",
+  "language": "english",
+  "end_action": null,
+  "status": "published",
+  "date_created": "2015-01-15 00:00:00",
+  "date_published": null,
+  "date_updated": null,
+  "date_end": null,
+  "categories": ["Category 1 > Sub Category 1"],
+  "labels": ["Label 1", "Label 2", "Label 3"],
+  "custom_fields": [
+    {
+      "key": "Multiple-select box field",
+      "value": "Choice 1 > Choice 2"
+    }
+  ],
+  "attachments": [
+    {
+      "person": "user@example.com",
+      "blob_data": null,
+      "blob_url": "",
+      "blob_path": "\/deskpro\/www\/app\/src\/Application\/ImportBundle\/Resources\/example\/csv\/articles.csv",
+      "file_name": "articles.csv",
+      "content_type": "csv",
+      "is_inline": false
+    }
+  ],
+  "comments": [
+    {
+      "person": "user@example.com",
+      "content": "Comment 1",
+      "status": "visible",
+      "is_reviewed": false,
+      "validating": "",
+      "date_created": "2015-01-15 00:00:00"
+    }
+  ]
+}

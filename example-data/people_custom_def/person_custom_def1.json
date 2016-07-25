@@ -1,8 +1,0 @@
-{
-  "oid": 1,
-  "import_map_key": "dp_person_field",
-  "title": "Text field",
-  "description": "Text field description",
-  "widget_type": "text",
-  "is_enabled": true
-}
