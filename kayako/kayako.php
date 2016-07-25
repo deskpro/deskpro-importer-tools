@@ -200,14 +200,13 @@ while ($data = $pager->next()) {
 //--------------------
 
 $output->startSection('Tickets');
-$pager = $db->getPager('SELECT * FROM swtickets');
-
 $statusMapping = [
     'Open'        => 'awaiting_agent',
     'In Progress' => 'awaiting_agent',
     'Closed'      => 'resolved',
 ];
 
+$pager = $db->getPager('SELECT * FROM swtickets');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
         $ticket = [
@@ -270,13 +269,12 @@ foreach ($getArticleCategories(0) as $category) {
 //--------------------
 
 $output->startSection('Articles');
-$pager = $db->getPager('SELECT * FROM swkbarticles');
-
 // todo need status mapping
 $statusMapping = [
     1 => 'published',
 ];
 
+$pager = $db->getPager('SELECT * FROM swkbarticles');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
         $article = [
@@ -298,5 +296,58 @@ while ($data = $pager->next()) {
         }
 
         $writer->writeArticle($n['kbarticleid'], $article);
+    }
+}
+
+//--------------------
+// News
+//--------------------
+
+$output->startSection('News');
+
+$newsCategories = [];
+$pager = $db->getPager('SELECT * FROM swnewscategories');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        $newsCategories[$n['newscategoryid']] = $n['categorytitle'];
+    }
+}
+
+// todo need status mapping
+$statusMapping = [
+    2 => 'published',
+];
+
+$pager = $db->getPager('SELECT * FROM swnewsitems');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        $news = [
+            'title'    => $n['subject'],
+            'person'   => $writer->prepareAgentOid($n['staffid']),
+            'content'  => '',
+            'status'   => $statusMapping[$n['newsstatus']],
+        ];
+
+        // get news content
+        $contentPager = $db->getPager('SELECT * FROM swnewsitemdata WHERE newsitemid = :news_id', [
+            'news_id' => $n['newsitemid'],
+        ]);
+
+        while ($data = $contentPager->next()) {
+            foreach ($data as $c) {
+                $news['content'] .= $c['contents'];
+            }
+        }
+
+        // get news category
+        $category = $db->findOne('SELECT * FROM swnewscategorylinks WHERE newsitemid = :news_id', [
+            'news_id' => $n['newsitemid'],
+        ]);
+
+        if ($category && isset($newsCategories[$category['newscategoryid']])) {
+            $news['category'] = $newsCategories[$category['newscategoryid']];
+        }
+
+        $writer->writeNews($n['newsitemid'], $news);
     }
 }
