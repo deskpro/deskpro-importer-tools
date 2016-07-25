@@ -48,6 +48,7 @@ require __DIR__.'/config.php';
 
 /** @var \Application\ImportBundle\ScriptHelper\OutputHelper $output */
 /** @var \Application\ImportBundle\ScriptHelper\WriteHelper $writer */
+/** @var \Application\ImportBundle\ScriptHelper\FormatHelper $formatter */
 /** @var \Application\ImportBundle\ScriptHelper\DbHelper $db */
 
 $db->setCredentials($CONFIG['dbinfo']);
@@ -66,40 +67,24 @@ while ($data = $pager->next()) {
 
         // set organization contact data
         // website
-        if ($n['website']) {
-            if ($writer->getFormattedUrl($n['website'])) {
-                $output->debug('Organization has valid website url, adding to its contact data');
-                $organization['contact_data']['website'][] = [
-                    'url' => $writer->getFormattedUrl($n['website']),
-                ];
-            } else {
-                $output->warning("Organization has invalid website url `{$n['website']}`, skipping");
-            }
+        if ($formatter->getFormattedUrl($n['website'])) {
+            $organization['contact_data']['website'][] = [
+                'url' => $formatter->getFormattedUrl($n['website']),
+            ];
         }
 
         // phone numbers
-        if ($n['phone']) {
-            if ($writer->getFormattedNumber($n['phone'])) {
-                $output->debug('Organization has valid phone number, adding to its contact data');
-                $organization['contact_data']['phone'][] = [
-                    'number' => $writer->getFormattedNumber($n['phone']),
-                    'type'   => 'phone',
-                ];
-            } else {
-                $output->warning("Organization has invalid phone number `{$n['phone']}`, skipping");
-            }
+        if ($formatter->getFormattedNumber($n['phone'])) {
+            $organization['contact_data']['phone'][] = [
+                'number' => $formatter->getFormattedNumber($n['phone']),
+                'type'   => 'phone',
+            ];
         }
-
-        if ($n['fax']) {
-            if ($writer->getFormattedNumber($n['fax'])) {
-                $output->debug('Organization has valid fax, adding, adding to its contact data');
-                $organization['contact_data']['phone'][] = [
-                    'number' => $writer->getFormattedNumber($n['fax']),
-                    'type'   => 'fax',
-                ];
-            } else {
-                $output->warning("Organization has invalid fax number `{$n['phone']}`, skipping");
-            }
+        if ($formatter->getFormattedNumber($n['fax'])) {
+            $organization['contact_data']['phone'][] = [
+                'number' => $formatter->getFormattedNumber($n['fax']),
+                'type'   => 'fax',
+            ];
         }
 
         // address
@@ -148,16 +133,11 @@ while ($data = $pager->next()) {
             $person['organization_position'] = $n['userdesignation'];
         }
 
-        if ($n['phone']) {
-            if ($writer->getFormattedNumber($n['phone'])) {
-                $output->debug('User has valid phone number, adding to its contact data');
-                $person['contact_data']['phone'][] = [
-                    'number' => $writer->getFormattedNumber($n['phone']),
-                    'type'   => 'phone',
-                ];
-            } else {
-                $output->warning("User has invalid phone number `{$n['phone']}`, skipping");
-            }
+        if ($formatter->getFormattedNumber($n['phone'])) {
+            $person['contact_data']['phone'][] = [
+                'number' => $formatter->getFormattedNumber($n['phone']),
+                'type'   => 'phone',
+            ];
         }
 
         $writer->writePerson('user_'.$n['userid'], $person);
