@@ -104,18 +104,65 @@ while ($data = $pager->next()) {
 }
 
 //--------------------
-// Staff and users
+// Staff
 //--------------------
 
-$output->startSection('People');
+$output->startSection('Staff');
+
+$staffGroups        = [];
+$staffGroupsMapping = [
+    'Administrator' => 'All Permissions',
+    'Staff'         => 'All Non-Destructive Permissions',
+];
+
+
+$pager = $db->getPager('SELECT * FROM swstaffgroup');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        if (isset($staffGroupsMapping[$n['title']])) {
+            $staffGroups[$n['staffgroupid']] = $staffGroupsMapping[$n['title']];
+        } else {
+            $staffGroups[$n['staffgroupid']] = $n['title'];
+        }
+    }
+}
+
 $pager = $db->getPager('SELECT * FROM swstaff');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
-        $writer->writeAgent($n['staffid'], [
+        $person = [
             'name'        => $n['fullname'],
             'emails'      => [$n['email']],
             'is_disabled' => !$n['isenabled'],
-        ]);
+        ];
+
+        if ($n['staffgroupid']) {
+            $person['agent_groups'][] = $staffGroups[$n['staffgroupid']];
+        }
+
+        $writer->writeAgent($n['staffid'], $person);
+    }
+}
+
+//--------------------
+// Users
+//--------------------
+
+$output->startSection('Users');
+
+$userGroups        = [];
+$userGroupsMapping = [
+    'Guest' => 'Everyone',
+];
+
+$pager = $db->getPager('SELECT * FROM swusergroups');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        if (isset($userGroupsMapping[$n['title']])) {
+            $userGroups[$n['usergroupid']] = $userGroupsMapping[$n['title']];
+        } else {
+            $userGroups[$n['usergroupid']] = $n['title'];
+        }
     }
 }
 
@@ -128,6 +175,10 @@ while ($data = $pager->next()) {
             'is_disabled'  => !$n['isenabled'],
             'organization' => $n['userorganizationid'],
         ];
+
+        if ($n['usergroupid']) {
+            $person['user_groups'][] = $userGroups[$n['usergroupid']];
+        }
 
         if ($person['organization']) {
             $person['organization_position'] = $n['userdesignation'];
@@ -149,14 +200,13 @@ while ($data = $pager->next()) {
 //--------------------
 
 $output->startSection('Tickets');
-$pager = $db->getPager('SELECT * FROM swtickets');
-
 $statusMapping = [
     'Open'        => 'awaiting_agent',
     'In Progress' => 'awaiting_agent',
     'Closed'      => 'resolved',
 ];
 
+$pager = $db->getPager('SELECT * FROM swtickets');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
         $ticket = [
@@ -167,6 +217,7 @@ while ($data = $pager->next()) {
             'status'     => $statusMapping[$n['ticketstatustitle']],
         ];
 
+        // get ticket messages
         $messagePager = $db->getPager('SELECT * FROM swticketposts WHERE ticketid = :ticket_id', [
             'ticket_id' => $n['ticketid'],
         ]);
@@ -182,5 +233,121 @@ while ($data = $pager->next()) {
         }
 
         $writer->writeTicket($n['ticketid'], $ticket);
+    }
+}
+
+//--------------------
+// Article categories
+//--------------------
+
+$output->startSection('Article categories');
+$getArticleCategories = function ($parentId) use ($db, &$getArticleCategories) {
+    $pager = $db->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id', [
+        'parent_id' => $parentId,
+    ]);
+
+    $categories = [];
+    while ($data = $pager->next()) {
+        foreach ($data as $n) {
+            $categories[] = [
+                'oid'        => $n['kbcategoryid'],
+                'title'      => $n['title'],
+                'categories' => $getArticleCategories($n['kbcategoryid']),
+            ];
+        }
+    }
+
+    return $categories;
+};
+
+foreach ($getArticleCategories(0) as $category) {
+    $writer->writeArticleCategory($category['oid'], $category);
+}
+
+//--------------------
+// Articles
+//--------------------
+
+$output->startSection('Articles');
+// todo need status mapping
+$statusMapping = [
+    1 => 'published',
+];
+
+$pager = $db->getPager('SELECT * FROM swkbarticles');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        $article = [
+            'title'   => $n['subject'],
+            'person'  => $writer->prepareAgentOid($n['creatorid']),
+            'content' => '',
+            'status'  => $statusMapping[$n['articlestatus']],
+        ];
+
+        // get article content
+        $contentPager = $db->getPager('SELECT * FROM swkbarticledata WHERE kbarticleid = :article_id', [
+            'article_id' => $n['kbarticleid'],
+        ]);
+
+        while ($data = $contentPager->next()) {
+            foreach ($data as $c) {
+                $article['content'] .= $c['contents'];
+            }
+        }
+
+        $writer->writeArticle($n['kbarticleid'], $article);
+    }
+}
+
+//--------------------
+// News
+//--------------------
+
+$output->startSection('News');
+
+$newsCategories = [];
+$pager = $db->getPager('SELECT * FROM swnewscategories');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        $newsCategories[$n['newscategoryid']] = $n['categorytitle'];
+    }
+}
+
+// todo need status mapping
+$statusMapping = [
+    2 => 'published',
+];
+
+$pager = $db->getPager('SELECT * FROM swnewsitems');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        $news = [
+            'title'    => $n['subject'],
+            'person'   => $writer->prepareAgentOid($n['staffid']),
+            'content'  => '',
+            'status'   => $statusMapping[$n['newsstatus']],
+        ];
+
+        // get news content
+        $contentPager = $db->getPager('SELECT * FROM swnewsitemdata WHERE newsitemid = :news_id', [
+            'news_id' => $n['newsitemid'],
+        ]);
+
+        while ($data = $contentPager->next()) {
+            foreach ($data as $c) {
+                $news['content'] .= $c['contents'];
+            }
+        }
+
+        // get news category
+        $category = $db->findOne('SELECT * FROM swnewscategorylinks WHERE newsitemid = :news_id', [
+            'news_id' => $n['newsitemid'],
+        ]);
+
+        if ($category && isset($newsCategories[$category['newscategoryid']])) {
+            $news['category'] = $newsCategories[$category['newscategoryid']];
+        }
+
+        $writer->writeNews($n['newsitemid'], $news);
     }
 }
