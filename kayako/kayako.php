@@ -235,3 +235,31 @@ while ($data = $pager->next()) {
         $writer->writeTicket($n['ticketid'], $ticket);
     }
 }
+
+//--------------------
+// Article categories
+//--------------------
+
+$output->startSection('Article categories');
+$getArticleCategories = function ($parentId) use ($db, &$getArticleCategories) {
+    $pager = $db->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parentId', [
+        'parentId' => $parentId,
+    ]);
+
+    $categories = [];
+    while ($data = $pager->next()) {
+        foreach ($data as $n) {
+            $categories[] = [
+                'oid'        => $n['kbcategoryid'],
+                'title'      => $n['title'],
+                'categories' => $getArticleCategories($n['kbcategoryid']),
+            ];
+        }
+    }
+
+    return $categories;
+};
+
+foreach ($getArticleCategories(0) as $category) {
+    $writer->writeArticleCategory($category['oid'], $category);
+}
