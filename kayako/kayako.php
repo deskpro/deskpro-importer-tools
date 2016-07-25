@@ -11,24 +11,24 @@
  *
  * 2) Copy this script in to your DeskPRO bin directory. For example:
  *
- *     $ cp kayako.php /path/to/deskpro/bin
+ *     $ cp kayako /path/to/deskpro/bin/importers
  *
  * 2) Run the import process to fetch all of your data from Kayako:
  *
  *     $ cd /path/to/deskpro
- *     $ bin/console import kayako.php
+ *     $ bin/import kayako
  *
  * 3) You can now optionally verify the integrity of your data:
  *
- *     $ bin/console import:verify
+ *     $ bin/import verify
  *
  * 4) When you're ready, go ahead and apply the import to your live database:
  *
- *     $ bin/console import:apply
+ *     $ bin/import apply
  *
- * 4) And finally, you can clean up the temporary data files from the fileystem:
+ * 4) And finally, you can clean up the temporary data files from the filesystem:
  *
- *     $ bin/console import:clean
+ *     $ bin/import clean
  *
  */
 ########################################################################################################################
@@ -50,7 +50,7 @@ $db->setCredentials($CONFIG['dbinfo']);
 
 
 $output->startSection('Organizations');
-$pager = $db->getPager('select * from swuserorganizations');
+$pager = $db->getPager('SELECT * FROM swuserorganizations');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
         $organization = [
@@ -111,7 +111,7 @@ while ($data = $pager->next()) {
 }
 
 $output->startSection('People');
-$pager = $db->getPager('select * from swstaff');
+$pager = $db->getPager('SELECT * FROM swstaff');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
         $writer->writePerson('agent_'.$n['staffid'], [
@@ -123,7 +123,7 @@ while ($data = $pager->next()) {
     }
 }
 
-$pager = $db->getPager('select * from swusers');
+$pager = $db->getPager('SELECT * FROM swusers');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
         $person = [
@@ -154,7 +154,7 @@ while ($data = $pager->next()) {
 }
 
 $output->startSection('Tickets');
-$pager = $db->getPager('select * from swtickets');
+$pager = $db->getPager('SELECT * FROM swtickets');
 
 $statusMapping = [
     'Open'        => 'awaiting_agent',
@@ -172,7 +172,7 @@ while ($data = $pager->next()) {
             'status'     => $statusMapping[$n['ticketstatustitle']],
         ];
 
-        $messagePager = $db->getPager('select * from swticketposts WHERE ticketid = :ticket_id', [
+        $messagePager = $db->getPager('SELECT * FROM swticketposts WHERE ticketid = :ticket_id', [
             'ticket_id' => $n['ticketid'],
         ]);
 
