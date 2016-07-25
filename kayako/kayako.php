@@ -1,18 +1,42 @@
 <?php
 
+/*
+ * This tool will connect to your Kayako database and export your data into the data/ directory in
+ * the standard DeskPRO Import Format.
+ *
+ * After this tool completes, you will run the standard DeskPRO import process to save the data to
+ * your live helpdesk. Refer to the README for more details.
+ *
+ * 1) Edit the values in the CONFIG section below.
+ *
+ * 2) Copy this script in to your DeskPRO bin directory. For example:
+ *
+ *     $ cp kayako.php /path/to/deskpro/bin
+ *
+ * 2) Run the import process to fetch all of your data from Kayako:
+ *
+ *     $ cd /path/to/deskpro
+ *     $ bin/console import kayako.php
+ *
+ * 3) You can now optionally verify the integrity of your data:
+ *
+ *     $ bin/console import:verify
+ *
+ * 4) When you're ready, go ahead and apply the import to your live database:
+ *
+ *     $ bin/console import:apply
+ *
+ * 4) And finally, you can clean up the temporary data files from the fileystem:
+ *
+ *     $ bin/console import:clean
+ *
+ */
 ########################################################################################################################
 # CONFIG
 ########################################################################################################################
 
-$CONFIG = [];
-$CONFIG['dbinfo'] = [
-    'host'     => 'localhost',
-    'port'     => '3306',
-    'user'     => 'root',
-    'password' => '',
-    'dbname'   => 'kayako',
-    'driver'   => 'pdo_mysql',
-];
+require __DIR__.'/config.php';
+
 
 ########################################################################################################################
 # Do not edit below this line
