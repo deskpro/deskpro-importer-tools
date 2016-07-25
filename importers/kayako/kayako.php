@@ -38,7 +38,6 @@
 
 require __DIR__.'/config.php';
 
-
 ########################################################################################################################
 # Do not edit below this line
 ########################################################################################################################
@@ -47,11 +46,11 @@ require __DIR__.'/config.php';
 // Setup
 //--------------------
 
-/** @var \Application\ImportBundle\ScriptHelper\OutputHelper $output */
-/** @var \Application\ImportBundle\ScriptHelper\WriteHelper $writer */
-/** @var \Application\ImportBundle\ScriptHelper\FormatHelper $formatter */
-/** @var \Application\ImportBundle\ScriptHelper\DbHelper $db */
+$output    = \DeskPRO\ImporterTools\Helpers\OutputHelper::getHelper();
+$writer    = \DeskPRO\ImporterTools\Helpers\WriteHelper::getHelper();
+$formatter = \DeskPRO\ImporterTools\Helpers\FormatHelper::getHelper();
 
+$db = \DeskPRO\ImporterTools\Helpers\DbHelper::getHelper();
 $db->setCredentials($CONFIG['dbinfo']);
 
 //--------------------
