@@ -104,18 +104,65 @@ while ($data = $pager->next()) {
 }
 
 //--------------------
-// Staff and users
+// Staff
 //--------------------
 
-$output->startSection('People');
+$output->startSection('Staff');
+
+$staffGroups        = [];
+$staffGroupsMapping = [
+    'Administrator' => 'All Permissions',
+    'Staff'         => 'All Non-Destructive Permissions',
+];
+
+
+$pager = $db->getPager('SELECT * FROM swstaffgroup');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        if (isset($staffGroupsMapping[$n['title']])) {
+            $staffGroups[$n['staffgroupid']] = $staffGroupsMapping[$n['title']];
+        } else {
+            $staffGroups[$n['staffgroupid']] = $n['title'];
+        }
+    }
+}
+
 $pager = $db->getPager('SELECT * FROM swstaff');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
-        $writer->writeAgent($n['staffid'], [
+        $person = [
             'name'        => $n['fullname'],
             'emails'      => [$n['email']],
             'is_disabled' => !$n['isenabled'],
-        ]);
+        ];
+
+        if ($n['staffgroupid']) {
+            $person['agent_groups'][] = $staffGroups[$n['staffgroupid']];
+        }
+
+        $writer->writeAgent($n['staffid'], $person);
+    }
+}
+
+//--------------------
+// Users
+//--------------------
+
+$output->startSection('Users');
+
+$userGroups        = [];
+$userGroupsMapping = [
+    'Guest' => 'Everyone',
+];
+
+$pager = $db->getPager('SELECT * FROM swusergroups');
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        if (isset($userGroupsMapping[$n['title']])) {
+            $userGroups[$n['usergroupid']] = $userGroupsMapping[$n['title']];
+        } else {
+            $userGroups[$n['usergroupid']] = $n['title'];
+        }
     }
 }
 
@@ -128,6 +175,10 @@ while ($data = $pager->next()) {
             'is_disabled'  => !$n['isenabled'],
             'organization' => $n['userorganizationid'],
         ];
+
+        if ($n['usergroupid']) {
+            $person['user_groups'][] = $userGroups[$n['usergroupid']];
+        }
 
         if ($person['organization']) {
             $person['organization_position'] = $n['userdesignation'];
