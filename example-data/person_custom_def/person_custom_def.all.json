@@ -1,0 +1,28 @@
+{
+  "title": "Choice field",
+  "description": "Choice field description",
+  "widget_type": "choice",
+  "is_enabled": true,
+  "is_agent_field": true,
+  "default_value": "Sub Choice 1",
+  "choices": [
+    {
+      "title": "Choice 1",
+      "choices": [
+        {
+          "title": "Sub Choice 1"
+        },
+        {
+          "title": "Sub Choice 2"
+        }
+      ]
+    },
+    {
+      "title": "Choice 2"
+    }
+  ],
+  "options": {
+    "required": true,
+    "agent_required": true
+  }
+}

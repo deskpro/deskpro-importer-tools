@@ -1,0 +1,23 @@
+{
+  "title": "Category 1",
+  "categories": [
+    {
+      "oid": "2",
+      "title": "Sub Category 1",
+      "categories": [
+        {
+          "oid": "3",
+          "title": "Sub Category 1a",
+          "categories": [],
+          "user_groups": ["registered"]
+        }
+      ]
+    },
+    {
+      "oid": "4",
+      "title": "Sub Category 2",
+      "categories": [],
+      "user_groups": ["everyone", "registered"]
+    }
+  ]
+}

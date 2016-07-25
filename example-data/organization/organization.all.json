@@ -1,0 +1,31 @@
+{
+  "name": "Some Organization",
+  "picture": {
+    "blob_url": "http://url/image.jpg",
+    "file_name": "image.jpg",
+    "content_type": "image/jpg"
+  },
+  "importance": 5,
+  "date_created": "2015-07-30 06:09:01",
+  "contact_data": {
+      "phone": [
+        {
+          "oid": 1,
+          "contact_type": "mobile",
+          "comment": "some comment",
+          "number": "1234567890",
+          "type": "phone"
+        }
+      ]
+  },
+  "custom_fields": [
+    {
+      "oid": 1,
+      "value": "text"
+    }
+  ],
+  "labels": [
+    "label1",
+    "label2"
+  ]
+}

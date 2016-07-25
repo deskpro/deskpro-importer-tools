@@ -1,0 +1,20 @@
+{
+  "is_agent": false,
+  "is_admin": false,
+  "is_disabled": true,
+  "is_deleted": false,
+  "name": "New User",
+  "override_display_name": "Display Name",
+  "password": "user_pass",
+  "password_scheme": "plain",
+  "timezone": "Europe/Moscow",
+  "date_created": "2015-02-06 19:05:35",
+  "language": "English",
+  "organization": "NewOrg",
+  "organization_position": "manager",
+  "emails": ["user2@example.com"],
+  "labels": ["label1", "label2"],
+  "user_groups": ["group 1", "group 2"],
+  "contact_data": [],
+  "custom_fields": []
+}

@@ -1,0 +1,16 @@
+{
+  "person": "user@example.com",
+  "title": "Download 1",
+  "content": "Download Content 1",
+  "language": "english",
+  "category": "Category 1",
+  "status": "published",
+  "blob": {
+    "blob_data": "some blob content",
+    "file_name": "file.txt",
+    "content_type": "text/plain"
+  },
+  "date_created": "2015-03-05 19:40:10",
+  "date_published": null,
+  "labels": ["Label 1"]
+}
