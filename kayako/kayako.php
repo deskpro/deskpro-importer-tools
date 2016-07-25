@@ -42,12 +42,19 @@ require __DIR__.'/config.php';
 # Do not edit below this line
 ########################################################################################################################
 
+//--------------------
+// Setup
+//--------------------
+
 /** @var \Application\ImportBundle\ScriptHelper\OutputHelper $output */
 /** @var \Application\ImportBundle\ScriptHelper\WriteHelper $writer */
 /** @var \Application\ImportBundle\ScriptHelper\DbHelper $db */
 
 $db->setCredentials($CONFIG['dbinfo']);
 
+//--------------------
+// Organizations
+//--------------------
 
 $output->startSection('Organizations');
 $pager = $db->getPager('SELECT * FROM swuserorganizations');
@@ -110,6 +117,10 @@ while ($data = $pager->next()) {
     }
 }
 
+//--------------------
+// Staff and users
+//--------------------
+
 $output->startSection('People');
 $pager = $db->getPager('SELECT * FROM swstaff');
 while ($data = $pager->next()) {
@@ -152,6 +163,10 @@ while ($data = $pager->next()) {
         $writer->writePerson('user_'.$n['userid'], $person);
     }
 }
+
+//--------------------
+// Tickets and messages
+//--------------------
 
 $output->startSection('Tickets');
 $pager = $db->getPager('SELECT * FROM swtickets');
