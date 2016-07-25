@@ -31,6 +31,7 @@
  *     $ bin/import clean
  *
  */
+
 ########################################################################################################################
 # CONFIG
 ########################################################################################################################
@@ -110,11 +111,10 @@ $output->startSection('People');
 $pager = $db->getPager('SELECT * FROM swstaff');
 while ($data = $pager->next()) {
     foreach ($data as $n) {
-        $writer->writePerson('agent_'.$n['staffid'], [
+        $writer->writeAgent($n['staffid'], [
             'name'        => $n['fullname'],
             'emails'      => [$n['email']],
             'is_disabled' => !$n['isenabled'],
-            'is_agent'    => true,
         ]);
     }
 }
@@ -140,7 +140,7 @@ while ($data = $pager->next()) {
             ];
         }
 
-        $writer->writePerson('user_'.$n['userid'], $person);
+        $writer->writeUser($n['userid'], $person);
     }
 }
 
@@ -161,8 +161,8 @@ while ($data = $pager->next()) {
     foreach ($data as $n) {
         $ticket = [
             'subject'    => $n['subject'],
-            'person'     => $n['userid'] ? 'user_'.$n['userid'] : null,
-            'agent'      => $n['staffid'] ? 'agent_'.$n['staffid'] : null,
+            'person'     => $writer->prepareUserOid($n['userid']),
+            'agent'      => $writer->prepareAgentOid($n['staffid']),
             'department' => $n['departmenttitle'],
             'status'     => $statusMapping[$n['ticketstatustitle']],
         ];
@@ -175,7 +175,7 @@ while ($data = $pager->next()) {
             foreach ($messageData as $m) {
                 $ticket['messages'][] = [
                     'oid'     => $m['ticketpostid'],
-                    'person'  => $m['userid'],
+                    'person'  => $writer->prepareUserOid($m['userid']),
                     'message' => $m['contents'],
                 ];
             }
