@@ -178,8 +178,8 @@ while ($data = $pager->next()) {
     foreach ($data as $n) {
         $ticket = [
             'subject'    => $n['subject'],
-            'person'     => $writer->prepareUserOid($n['userid']),
-            'agent'      => $writer->prepareAgentOid($n['staffid']),
+            'person'     => $writer->userOid($n['userid']),
+            'agent'      => $writer->agentOid($n['staffid']),
             'department' => $n['departmenttitle'],
             'status'     => $statusMapping[$n['ticketstatustitle']],
         ];
@@ -193,7 +193,7 @@ while ($data = $pager->next()) {
             foreach ($messageData as $m) {
                 $ticket['messages'][] = [
                     'oid'     => $m['ticketpostid'],
-                    'person'  => $writer->prepareUserOid($m['userid']),
+                    'person'  => $writer->userOid($m['userid']),
                     'message' => $m['contents'],
                 ];
             }
@@ -246,7 +246,7 @@ while ($data = $pager->next()) {
     foreach ($data as $n) {
         $article = [
             'title'   => $n['subject'],
-            'person'  => $writer->prepareAgentOid($n['creatorid']),
+            'person'  => $writer->agentOid($n['creatorid']),
             'content' => '',
             'status'  => $statusMapping[$n['articlestatus']],
         ];
@@ -290,7 +290,7 @@ while ($data = $pager->next()) {
     foreach ($data as $n) {
         $news = [
             'title'    => $n['subject'],
-            'person'   => $writer->prepareAgentOid($n['staffid']),
+            'person'   => $writer->agentOid($n['staffid']),
             'content'  => '',
             'status'   => $statusMapping[$n['newsstatus']],
         ];

@@ -82,6 +82,7 @@ class WriteHelper
      */
     public static function getHelper()
     {
+        /** @var mixed $DP_CONTAINER */
         global $DP_CONTAINER;
 
         static $helper;
@@ -160,7 +161,7 @@ class WriteHelper
      *
      * @return string
      */
-    public function prepareUserOid($oid)
+    public function userOid($oid)
     {
         return $oid ? 'user_'.$oid : null;
     }
@@ -170,7 +171,7 @@ class WriteHelper
      *
      * @return string
      */
-    public function prepareAgentOid($oid)
+    public function agentOid($oid)
     {
         return $oid ? 'agent_'.$oid : null;
     }
@@ -259,30 +260,31 @@ class WriteHelper
     /**
      * @param int|string $oid
      * @param array      $data
+     * @param bool       $oidWithPrefix
      */
-    public function writeUser($oid, array $data)
+    public function writeUser($oid, array $data, $oidWithPrefix = true)
     {
-        $this->writePerson($this->prepareUserOid($oid), $data);
+        if ($oidWithPrefix) {
+            $oid = $this->userOid($oid);
+        }
+
+        $this->writePerson($oid, $data);
     }
 
     /**
      * @param int|string $oid
      * @param array      $data
+     * @param bool       $oidWithPrefix
      */
-    public function writeAgent($oid, array $data)
+    public function writeAgent($oid, array $data, $oidWithPrefix = true)
     {
-        $this->writePerson($this->prepareAgentOid($oid), array_merge($data, [
+        if ($oidWithPrefix) {
+            $oid = $this->agentOid($oid);
+        }
+
+        $this->writePerson($oid, array_merge($data, [
             'is_agent' => true,
         ]));
-    }
-
-    /**
-     * @param int|string $oid
-     * @param array      $data
-     */
-    public function writePerson($oid, array $data)
-    {
-        $this->writeModel($oid, $data, Model\Person::class);
     }
 
     /**
@@ -315,6 +317,15 @@ class WriteHelper
     public function printLastModel()
     {
         $this->logger->debug($this->serializer->serialize($this->lastModel, 'json'));
+    }
+
+    /**
+     * @param int|string $oid
+     * @param array      $data
+     */
+    protected function writePerson($oid, array $data)
+    {
+        $this->writeModel($oid, $data, Model\Person::class);
     }
 
     /**
