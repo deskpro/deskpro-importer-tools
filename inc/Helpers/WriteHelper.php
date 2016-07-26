@@ -82,6 +82,7 @@ class WriteHelper
      */
     public static function getHelper()
     {
+        /** @var mixed $DP_CONTAINER */
         global $DP_CONTAINER;
 
         static $helper;
