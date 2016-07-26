@@ -12,6 +12,7 @@ After this tool completes, you will run the standard DeskPRO import process to s
 * Run the import process to fetch all of your data from Kayako:
 
 $ cd /path/to/deskpro
+
 $ bin/import kayako
 
 * You can now optionally verify the integrity of your data:
