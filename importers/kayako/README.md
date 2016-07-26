@@ -1,28 +1,32 @@
-Kayako importer script
+Kayako Importer Script
 ======================
 
 This tool will connect to your Kayako database and export your data in the standard DeskPRO Import Format.
 
 After this tool completes, you will run the standard DeskPRO import process to save the data to your live helpdesk.
 
-* download https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip
-* unzip deskpro-importer-tools-master.zip
-* mv deskpro-importer-tools-master /path/to/deskpro/bin/deskpro-importer-tools
-* Edit the values in the CONFIG in /path/to/deskpro/bin/deskpro-importer-tools/importers/kayako/config.php.
-* Run the import process to fetch all of your data from Kayako:
+**Setup**
 
-$ cd /path/to/deskpro
+* Download https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip
+* Unzip `deskpro-importer-tools-master.zip`
+* Move `deskpro-importer-tools-master` into DeskPRO's `/bin/` directory
+* Edit the config values in the `/path/to/deskpro/bin/deskpro-importer-tools/importers/kayako/config.php`
 
-$ bin/import kayako
+**Import Data**
 
-* You can now optionally verify the integrity of your data:
+Run the import process to fetch all of your data from Kayako:
 
-$ bin/import verify
+    $ cd /path/to/deskpro
+    $ bin/import kayako
 
-* When you're ready, go ahead and apply the import to your live database:
+You can now optionally verify the integrity of your data:
 
-$ bin/import apply
+    $ bin/import verify
 
-* And finally, you can clean up the temporary data files from the filesystem:
+When you're ready, go ahead and apply the import to your live database:
 
-$ bin/import clean
+    bin/import apply
+
+And finally, you can clean up the temporary data files from the filesystem:
+
+    bin/import clean
