@@ -1,14 +1,14 @@
 Kayako importer script
 ======================
 
-This tool will connect to your Kayako database and export your data into the data/ directory in the standard DeskPRO Import Format.
+This tool will connect to your Kayako database and export your data in the standard DeskPRO Import Format.
 
 After this tool completes, you will run the standard DeskPRO import process to save the data to your live helpdesk.
 
 * download https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip
-
-* Edit the values in the CONFIG section below.
-* Copy this script in to your DeskPRO bin directory. For example: $ cp kayako /path/to/deskpro/bin/importers
+* unzip deskpro-importer-tools-master.zip
+* mv deskpro-importer-tools-master /path/to/deskpro/bin/deskpro-importer-tools
+* Edit the values in the CONFIG in /path/to/deskpro/bin/deskpro-importer-tools/importers/kayako/config.php.
 * Run the import process to fetch all of your data from Kayako:
 
 $ cd /path/to/deskpro
