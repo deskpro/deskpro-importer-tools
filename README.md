@@ -18,7 +18,7 @@ We currently provide importers for these 3 products. Please follow the instructi
  
 ### 3. I'm using a different product.
 
-The DeskPRO importer is a platform that helps simplify writing your own importer. The following [Custom Importer Instructions](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/customer/README.md) will guide you to building your own tool.
+The DeskPRO importer is a platform that helps simplify writing your own importer. The following [Custom Importer Instructions](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/custom/README.md) will guide you to building your own tool.
 
 Alternatively, The DeskPRO consultancy team can write an import for you. These projects typically range from $2,000 to $20,000 in cost. Please contact sales@deskpro.com for more information.
 
