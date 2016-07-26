@@ -8,6 +8,8 @@ The DeskPRO team has put a lot of effort into helping you migrate your data into
 
 DeskPRO includes a tool to upload a CSV of your user data directly from within the admin interface. This works on both On-Premise and Cloud deployments of DeskPRO.
 
+[DeskPRO Manual : CSV User Import](https://manuals.deskpro.com/html/admin/importing-data/csv-user-import.html)
+
 ### 2. I'm currently using Kayako, Zendesk or Spiceworks.
 
 We currently provide importers for these 3 products. Please follow the instructions for the product you wish to import your data from.
