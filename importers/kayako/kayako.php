@@ -10,15 +10,20 @@ require __DIR__.'/config.php';
 # Do not edit below this line
 ########################################################################################################################
 
+use DeskPRO\ImporterTools\Helpers\OutputHelper;
+use DeskPRO\ImporterTools\Helpers\WriteHelper;
+use DeskPRO\ImporterTools\Helpers\FormatHelper;
+use DeskPRO\ImporterTools\Helpers\DbHelper;
+
 //--------------------
 // Setup
 //--------------------
 
-$output    = \DeskPRO\ImporterTools\Helpers\OutputHelper::getHelper();
-$writer    = \DeskPRO\ImporterTools\Helpers\WriteHelper::getHelper();
-$formatter = \DeskPRO\ImporterTools\Helpers\FormatHelper::getHelper();
+$output    = OutputHelper::getHelper();
+$writer    = WriteHelper::getHelper();
+$formatter = FormatHelper::getHelper();
 
-$db = \DeskPRO\ImporterTools\Helpers\DbHelper::getHelper();
+$db = DbHelper::getHelper();
 $db->setCredentials($CONFIG['dbinfo']);
 
 //--------------------

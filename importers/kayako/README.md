@@ -17,16 +17,16 @@ After this tool completes, you will run the standard DeskPRO import process to s
 Run the import process to fetch all of your data from Kayako:
 
     $ cd /path/to/deskpro
-    $ bin/import kayako
+    $ php bin/import kayako
 
 You can now optionally verify the integrity of your data:
 
-    $ bin/import verify
+    $ php bin/import verify
 
 When you're ready, go ahead and apply the import to your live database:
 
-    bin/import apply
+    $ php bin/import apply
 
 And finally, you can clean up the temporary data files from the filesystem:
 
-    bin/import clean
+    $ php bin/import clean

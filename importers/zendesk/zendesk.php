@@ -10,9 +10,18 @@ require __DIR__.'/config.php';
 # Do not edit below this line
 ########################################################################################################################
 
-$reader = \DeskPRO\ImporterTools\Importers\ZenDesk\ZenDeskReader::createReader($CONFIG['account']);
-$output = \DeskPRO\ImporterTools\Helpers\OutputHelper::getHelper();
-$writer = \DeskPRO\ImporterTools\Helpers\WriteHelper::getHelper();
+use DeskPRO\ImporterTools\Importers\ZenDesk\ZenDeskReader;
+use DeskPRO\ImporterTools\Importers\ZenDesk\ZenDeskMapper;
+use DeskPRO\ImporterTools\Helpers\OutputHelper;
+use DeskPRO\ImporterTools\Helpers\WriteHelper;
+
+//--------------------
+// Setup
+//--------------------
+
+$reader = ZenDeskReader::createReader($CONFIG['account']);
+$output = OutputHelper::getHelper();
+$writer = WriteHelper::getHelper();
 
 //--------------------
 // Organizations
@@ -48,7 +57,7 @@ while ($people = $pager->getNext()) {
         ];
 
         try {
-            $person['timezone'] = \DeskPRO\ImporterTools\Importers\ZenDesk\Mapper\TimeZoneMapper::getTimeZoneName($n['time_zone']);
+            $person['timezone'] = ZenDeskMapper::$timezoneMapping[$n['time_zone']];
         } catch (\RuntimeException $e) {
             $person['timezone'] = 'UTC';
             $output->warning("Found unknown timezone `{$n['time_zone']}`");
