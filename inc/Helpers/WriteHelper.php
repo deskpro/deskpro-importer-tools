@@ -314,6 +314,24 @@ class WriteHelper
         $this->writeModel($oid, $data, Model\TicketCustomDef::class);
     }
 
+    /**
+     * @param int|string $oid
+     * @param array      $data
+     */
+    public function writeTextSnippet($oid, array $data)
+    {
+        $this->writeModel($oid, $data, Model\TextSnippet::class);
+    }
+
+    /**
+     * @param int|string $oid
+     * @param array      $data
+     */
+    public function writeTextSnippetCategory($oid, array $data)
+    {
+        $this->writeModel($oid, $data, Model\TextSnippetCategory::class);
+    }
+
     public function printLastModel()
     {
         $this->logger->debug($this->serializer->serialize($this->lastModel, 'json'));

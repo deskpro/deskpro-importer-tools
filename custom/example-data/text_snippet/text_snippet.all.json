@@ -1,0 +1,26 @@
+{
+  "person": 1,
+  "category": 1,
+  "shortcut_code": "snippet 1",
+  "is_draft": true,
+  "title_translations": [
+    {
+      "language": "eng",
+      "value": "snippet 1 eng"
+    },
+    {
+      "language": "fr",
+      "value": "snippet 1 fr"
+    }
+  ],
+  "snippet_translations": [
+    {
+      "language": "eng",
+      "value": "snippet content 1 eng"
+    },
+    {
+      "language": "fr",
+      "value": "snippet content 1 fr"
+    }
+  ]
+}

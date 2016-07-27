@@ -1,0 +1,11 @@
+{
+  "person": 1,
+  "typename": "tickets",
+  "is_global": true,
+  "title_translations": [
+    {
+      "language": "eng",
+      "value": "snippet category category 1 eng"
+    }
+  ]
+}

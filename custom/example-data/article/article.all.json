@@ -20,12 +20,9 @@
   "attachments": [
     {
       "person": "user@example.com",
-      "blob_data": null,
-      "blob_url": "",
-      "blob_path": "\/deskpro\/www\/app\/src\/Application\/ImportBundle\/Resources\/example\/csv\/articles.csv",
+      "blob_data": "blob text",
       "file_name": "articles.csv",
-      "content_type": "csv",
-      "is_inline": false
+      "content_type": "csv"
     }
   ],
   "comments": [
@@ -36,6 +33,18 @@
       "is_reviewed": false,
       "validating": "",
       "date_created": "2015-01-15 00:00:00"
+    }
+  ],
+  "title_translations": [
+    {
+      "language": "fr",
+      "value": "Translated title 1"
+    }
+  ],
+  "content_translations": [
+    {
+      "language": "fr",
+      "value": "Translated content 1"
     }
   ]
 }
