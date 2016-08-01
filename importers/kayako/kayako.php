@@ -323,3 +323,27 @@ while ($data = $pager->next()) {
         $writer->writeNews($n['newsitemid'], $news);
     }
 }
+
+//--------------------
+// Settings
+//--------------------
+
+$output->startSection('Settings');
+$settingMapping = [
+    'general_producturl'  => 'core.site_url',
+    'general_companyname' => 'core.site_name',
+];
+
+$pager = $db->getPager('SELECT * FROM swsettings WHERE section = :section AND vkey IN (:setting_names)', [
+    'section'       => 'settings',
+    'setting_names' => array_keys($settingMapping),
+]);
+
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        $writer->writeSetting($n['settingid'], [
+            'name'  => $n['vkey'],
+            'value' => $n['data'],
+        ]);
+    }
+}

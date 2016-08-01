@@ -107,8 +107,27 @@ class DbHelper
      */
     public function findOne($query, array $params = [])
     {
-        $statement = $this->connection->executeQuery($query, $params);
+        $statement = $this->connection->executeQuery($query, $params, self::getParamTypes($params));
 
         return $statement->fetch();
+    }
+
+    /**
+     * @param array $params
+     *
+     * @return array
+     */
+    public static function getParamTypes(array $params = [])
+    {
+        $types = [];
+        foreach ($params as $name => $param) {
+            if (is_array($param)) {
+                $types[$name] = Connection::PARAM_INT_ARRAY;
+            } else {
+                $types[$name] = \PDO::PARAM_STR;
+            }
+        }
+
+        return $types;
     }
 }
