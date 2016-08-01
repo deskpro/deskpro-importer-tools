@@ -332,6 +332,24 @@ class WriteHelper
         $this->writeModel($oid, $data, Model\TextSnippetCategory::class);
     }
 
+    /**
+     * @param int|string $oid
+     * @param array      $data
+     */
+    public function writeChat($oid, array $data)
+    {
+        $this->writeModel($oid, $data, Model\Chat::class);
+    }
+
+    /**
+     * @param int|string $oid
+     * @param array      $data
+     */
+    public function writeChatCustomDef($oid, array $data)
+    {
+        $this->writeModel($oid, $data, Model\ChatCustomDef::class);
+    }
+
     public function printLastModel()
     {
         $this->logger->debug($this->serializer->serialize($this->lastModel, 'json'));

@@ -123,7 +123,14 @@ Agent options:
 
 ### How to set custom field values
 
-"Person", "Organization" "Ticket", "Feedback" and "Article" support custom fields. They all have the same data format. To set custom field value you need to provide the custom def **oid** (custom def id in the system you are exporting from) or **field name** and **value**.<br/>
+"Person", "Organization" "Ticket", "Feedback", "Article" and "Chat" models support custom fields. They all have the same data format. To set custom field value you need to provide the custom def **oid** (custom def id in the system you are exporting from) or field **name** and **value**.<br/>
+
+| Column name               | Type                | Required | Possible values                                                                                                                                 | Default | Description                                                                                                                                                               | Examples                           |
+| --------------------------|---------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
+| oid                       | string              |          |                                                                                                                                                 |         | Custom definition oid.                                                                                                                                                    |                                    |
+| name                      | string              |          |                                                                                                                                                 |         | Custom definition name. Oid or name should be set.                                                                                                                        |                                    |
+| value                     | string              |  *       |                                                                                                                                                 |         | Custom field value.                                                                                                                                                       |                                    |
+
 
 So it could be:
 
@@ -178,18 +185,6 @@ All field types have specific value formats:
 }
 ```
 
-#### Datetime field custom data value
-
-```json
-{
-    "custom_fields": [
-        {
-            "name": "Some field name",
-            "value": "2016-07-25 12:00:00" 
-        }
-    ]
-}
-```
 
 #### Toggle field custom data value
 
