@@ -19,7 +19,7 @@ Allows to create deep categories hierarchy.
 
 | Column name               | Type                                          | Required | Possible values | Default | Description                                    | Examples             |
 | --------------------------|-----------------------------------------------|----------|-----------------|---------|------------------------------------------------|----------------------|
-| oid                       | string                                        |  *       |                 |         | External source id.                            |                      |
+| oid                       | string                                        |          |                 |         | External source id.                            |                      |
 | title                     | string                                        |  *       |                 |         | Category title.                                |                      |
 | is_agent                  | boolean                                       |          |                 | false   |                                                |                      |
 | user_groups               | string[]                                      |          |                 | [ ]     | Array of usergroup names.                      | everyone, registered |
