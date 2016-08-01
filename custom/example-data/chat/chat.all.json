@@ -1,0 +1,26 @@
+{
+  "subject": "Chat subject",
+  "person": 1,
+  "agent": 2,
+  "date_created": "2015-03-05 19:40:10",
+  "date_ended": "2015-03-05 20:40:10",
+  "ended_by": "timeout",
+  "labels": ["label 1", "label 2"],
+  "custom_fields": [],
+  "rating_overall": 5,
+  "rating_comment": "Feedback comment",
+  "messages": [
+    {
+      "oid": 1,
+      "person": 1,
+      "content": "Message 1",
+      "date_created": "2015-03-05 19:40:10"
+    },
+    {
+      "oid": 2,
+      "person": 3,
+      "content": "Message 2",
+      "date_created": "2015-03-05 19:45:10"
+    }
+  ]
+}
