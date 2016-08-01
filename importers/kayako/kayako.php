@@ -197,9 +197,25 @@ while ($data = $pager->next()) {
         while ($messageData = $messagePager->next()) {
             foreach ($messageData as $m) {
                 $ticket['messages'][] = [
-                    'oid'     => $m['ticketpostid'],
+                    'oid'     => 'post_'.$m['ticketpostid'],
                     'person'  => $writer->userOid($m['userid']),
                     'message' => $m['contents'],
+                ];
+            }
+        }
+
+        // get ticket notes
+        $notesPager = $db->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
+            'ticket_id' => $n['ticketid'],
+        ]);
+
+        while ($messageData = $notesPager->next()) {
+            foreach ($messageData as $m) {
+                $ticket['messages'][] = [
+                    'oid'     => 'note_'.$m['ticketnoteid'],
+                    'person'  => $writer->agentOid($m['staffid']),
+                    'message' => $m['note'],
+                    'is_note' => true,
                 ];
             }
         }
@@ -342,7 +358,7 @@ $pager = $db->getPager('SELECT * FROM swsettings WHERE section = :section AND vk
 while ($data = $pager->next()) {
     foreach ($data as $n) {
         $writer->writeSetting($n['settingid'], [
-            'name'  => $n['vkey'],
+            'name'  => $settingMapping[$n['vkey']],
             'value' => $n['data'],
         ]);
     }
