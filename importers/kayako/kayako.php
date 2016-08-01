@@ -197,9 +197,25 @@ while ($data = $pager->next()) {
         while ($messageData = $messagePager->next()) {
             foreach ($messageData as $m) {
                 $ticket['messages'][] = [
-                    'oid'     => $m['ticketpostid'],
+                    'oid'     => 'post_'.$m['ticketpostid'],
                     'person'  => $writer->userOid($m['userid']),
                     'message' => $m['contents'],
+                ];
+            }
+        }
+
+        // get ticket notes
+        $notesPager = $db->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
+            'ticket_id' => $n['ticketid'],
+        ]);
+
+        while ($messageData = $notesPager->next()) {
+            foreach ($messageData as $m) {
+                $ticket['messages'][] = [
+                    'oid'     => 'note_'.$m['ticketnoteid'],
+                    'person'  => $writer->agentOid($m['staffid']),
+                    'message' => $m['note'],
+                    'is_note' => true,
                 ];
             }
         }
@@ -321,5 +337,29 @@ while ($data = $pager->next()) {
         }
 
         $writer->writeNews($n['newsitemid'], $news);
+    }
+}
+
+//--------------------
+// Settings
+//--------------------
+
+$output->startSection('Settings');
+$settingMapping = [
+    'general_producturl'  => 'core.site_url',
+    'general_companyname' => 'core.site_name',
+];
+
+$pager = $db->getPager('SELECT * FROM swsettings WHERE section = :section AND vkey IN (:setting_names)', [
+    'section'       => 'settings',
+    'setting_names' => array_keys($settingMapping),
+]);
+
+while ($data = $pager->next()) {
+    foreach ($data as $n) {
+        $writer->writeSetting($n['settingid'], [
+            'name'  => $settingMapping[$n['vkey']],
+            'value' => $n['data'],
+        ]);
     }
 }

@@ -51,6 +51,11 @@ class DbPager
     private $params = [];
 
     /**
+     * @var array
+     */
+    private $types = [];
+
+    /**
      * @var int
      */
     private $pageNum = 1;
@@ -78,6 +83,7 @@ class DbPager
         $this->query      = $query;
         $this->perPage    = $perPage;
         $this->params     = $params;
+        $this->types      = DbHelper::getParamTypes($params);
     }
 
     /**
@@ -86,7 +92,7 @@ class DbPager
     public function next()
     {
         $limit     = ($this->pageNum - 1) * $this->perPage;
-        $statement = $this->connection->executeQuery("{$this->query} LIMIT $limit, {$this->perPage}", $this->params);
+        $statement = $this->connection->executeQuery("{$this->query} LIMIT $limit, {$this->perPage}", $this->params, $this->types);
 
         ++$this->pageNum;
 
