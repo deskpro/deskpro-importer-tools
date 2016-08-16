@@ -5,6 +5,18 @@ This tool will connect to your Kayako database and export your data in the stand
 
 After this tool completes, you will run the standard DeskPRO import process to save the data to your live helpdesk.
 
+**What does it import?**
+
+* Organizations (name, website, phone numbers, fax numbers, addresses)
+* Agents (Staff)
+* Usergroups
+* Users (name, email, organization, organization position, is_disabled, phone)
+* Tickets (Status, subject, person, agent, department)
+* Ticket Messages
+* Ticket (Agent) Notes
+* Knowledgebase (Categories & Articles)
+* News
+
 **Setup**
 
 * Download https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip
