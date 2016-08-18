@@ -186,7 +186,7 @@ while ($data = $pager->next()) {
             'person'     => $writer->userOid($n['userid']),
             'agent'      => $writer->agentOid($n['staffid']),
             'department' => $n['departmenttitle'],
-            'status'     => $statusMapping[$n['ticketstatustitle']],
+            'status'     => isset($statusMapping[$n['ticketstatustitle']]) ? $statusMapping[$n['ticketstatustitle']] : 'awaiting_agent',
         ];
 
         // get ticket messages
@@ -269,7 +269,7 @@ while ($data = $pager->next()) {
             'title'   => $n['subject'],
             'person'  => $writer->agentOid($n['creatorid']),
             'content' => '',
-            'status'  => $statusMapping[$n['articlestatus']],
+            'status'  => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
         ];
 
         // get article content
@@ -313,7 +313,7 @@ while ($data = $pager->next()) {
             'title'    => $n['subject'],
             'person'   => $writer->agentOid($n['staffid']),
             'content'  => '',
-            'status'   => $statusMapping[$n['newsstatus']],
+            'status'   => isset($statusMapping[$n['newsstatus']]) ? $statusMapping[$n['newsstatus']] : 'published',
         ];
 
         // get news content
