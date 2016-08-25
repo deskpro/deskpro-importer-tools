@@ -149,4 +149,24 @@ class FormatHelper
 
         return $url;
     }
+
+    /**
+     * @param string $date
+     *
+     * @return string
+     */
+    public function getFormattedDate($date)
+    {
+        try {
+            if (is_int($date) || ctype_digit($date)) {
+                $date = '@'.$date;
+            }
+
+            $date = new \DateTime($date);
+        } catch (\Exception $e) {
+            $date = new \DateTime();
+        }
+
+        return $date->format('c');
+    }
 }

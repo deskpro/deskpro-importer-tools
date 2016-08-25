@@ -98,4 +98,16 @@ class DbPager
 
         return $statement->fetchAll();
     }
+
+    /**
+     * @return \Generator
+     */
+    public function getIterator()
+    {
+        while ($data = $this->next()) {
+            foreach ($data as $n) {
+                yield $n;
+            }
+        }
+    }
 }
