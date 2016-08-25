@@ -113,6 +113,19 @@ class DbHelper
     }
 
     /**
+     * @param string $query
+     * @param array  $params
+     *
+     * @return mixed
+     */
+    public function findAll($query, array $params = [])
+    {
+        $statement = $this->connection->executeQuery($query, $params, self::getParamTypes($params));
+
+        return $statement->fetchAll();
+    }
+
+    /**
      * @param array $params
      *
      * @return array

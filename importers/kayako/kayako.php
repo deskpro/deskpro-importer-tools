@@ -346,8 +346,8 @@ while ($data = $pager->next()) {
 
 $output->startSection('Settings');
 $settingMapping = [
-    'general_producturl'  => 'core.site_url',
-    'general_companyname' => 'core.site_name',
+    'general_producturl'  => 'core.deskpro_url',
+    'general_companyname' => 'core.deskpro_name',
 ];
 
 $pager = $db->getPager('SELECT * FROM swsettings WHERE section = :section AND vkey IN (:setting_names)', [
