@@ -100,11 +100,13 @@ class DbPager
     }
 
     /**
+     * @param mixed $pager
+     *
      * @return \Generator
      */
-    public function getIterator()
+    public static function getIterator($pager)
     {
-        while ($data = $this->next()) {
+        while ($data = $pager->next()) {
             foreach ($data as $n) {
                 yield $n;
             }

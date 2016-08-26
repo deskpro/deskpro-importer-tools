@@ -111,7 +111,7 @@ class ZenDeskReader
     {
         $request = new Request(CoreAPI\Person::class, 'incrementalExport');
 
-        return new IncrementalPager($this->adapter, $request, 'users', $startTime);
+        return IncrementalPager::getIterator(new IncrementalPager($this->adapter, $request, 'users', $startTime));
     }
 
     /**
@@ -179,7 +179,7 @@ class ZenDeskReader
     {
         $request = new Request(CoreAPI\Ticket::class, 'incrementalExport');
 
-        return new IncrementalPager($this->adapter, $request, 'tickets', $startTime);
+        return IncrementalPager::getIterator(new IncrementalPager($this->adapter, $request, 'tickets', $startTime));
     }
 
     /**
@@ -308,7 +308,7 @@ class ZenDeskReader
     {
         $request = new Request(HelpCenter\Article::class, 'incrementalExport');
 
-        return new IncrementalPager($this->adapter, $request, 'articles', $startTime);
+        return IncrementalPager::getIterator(new IncrementalPager($this->adapter, $request, 'articles', $startTime));
     }
 
     /**

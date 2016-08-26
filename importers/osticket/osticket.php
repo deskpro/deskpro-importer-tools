@@ -257,7 +257,7 @@ foreach ($getFormFields('T') as $id => $formField) {
 $output->startSection('Organizations');
 $pager = $db->getPager("SELECT * FROM {$tablePrefix}organization");
 
-foreach ($pager->getIterator() as $n) {
+foreach ($pager as $n) {
     $organization = [
         'name'         => $n['name'],
         'date_created' => $formatter->getFormattedDate($n['created']),
@@ -282,7 +282,7 @@ foreach ($db->findAll("SELECT * FROM {$tablePrefix}groups") as $group) {
     $agentGroupNames[$group['group_id']] = $group['group_name'];
 }
 
-foreach ($pager->getIterator() as $n) {
+foreach ($pager as $n) {
     $agent = [
         'name'         => $n['firstname'].' '.$n['lastname'],
         'emails'       => [$n['email']],
@@ -320,7 +320,7 @@ foreach ($pager->getIterator() as $n) {
 $output->startSection('Users');
 $pager = $db->getPager("SELECT * FROM {$tablePrefix}user");
 
-foreach ($pager->getIterator() as $n) {
+foreach ($pager as $n) {
     $user = [
         'name'         => $n['name'],
         'organization' => $n['org_id'],
@@ -372,7 +372,7 @@ foreach ($db->findAll("SELECT * FROM {$tablePrefix}department") as $department) 
     $ticketDepartmentsMap[$department['dept_id']] = $department['dept_name'];
 }
 
-foreach ($pager->getIterator() as $n) {
+foreach ($pager as $n) {
     $ticket = [
         'person' => $writer->userOid($n['user_id']),
         'agent'  => $writer->agentOid($n['staff_id']),
@@ -398,7 +398,7 @@ foreach ($pager->getIterator() as $n) {
         'ticket_id' => $n['ticket_id']
     ]);
 
-    foreach ($messagesPager->getIterator() as $m) {
+    foreach ($messagesPager as $m) {
         $message = [
             'oid'     => $m['id'],
             'person'  => $writer->userOid($m['user_id']),
@@ -431,7 +431,7 @@ foreach ($pager->getIterator() as $n) {
 $output->startSection('Article categories');
 $pager = $db->getPager("SELECT * FROM {$tablePrefix}faq_category");
 
-foreach ($pager->getIterator() as $n) {
+foreach ($pager as $n) {
     $writer->writeArticleCategory($n['category_id'], [
         'title'        => $n['name'],
         'is_agent'     => !$n['ispublic'],
@@ -446,7 +446,7 @@ foreach ($pager->getIterator() as $n) {
 $output->startSection('Articles');
 $pager = $db->getPager("SELECT * FROM {$tablePrefix}faq");
 
-foreach ($pager->getIterator() as $n) {
+foreach ($pager as $n) {
     $writer->writeArticle($n['faq_id'], [
         'title'       => $n['question'],
         'content'     => $n['answer'],
@@ -471,7 +471,7 @@ $pager = $db->getPager("SELECT * FROM {$tablePrefix}config WHERE namespace = 'co
     'setting_names' => array_keys($settingMapping),
 ]);
 
-foreach ($pager->getIterator() as $n) {
+foreach ($pager as $n) {
     $writer->writeSetting($n['id'], [
         'name'  => $settingMapping[$n['key']],
         'value' => $n['value'],

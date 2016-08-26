@@ -32,48 +32,48 @@ $db->setCredentials($CONFIG['dbinfo']);
 
 $output->startSection('Organizations');
 $pager = $db->getPager('SELECT * FROM swuserorganizations');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        $organization = [
-            'name' => $n['organizationname'],
+
+foreach ($pager as $n) {
+    $organization = [
+        'name' => $n['organizationname'],
+    ];
+
+    // set organization contact data
+    // website
+    if ($formatter->getFormattedUrl($n['website'])) {
+        $organization['contact_data']['website'][] = [
+            'url' => $formatter->getFormattedUrl($n['website']),
         ];
-
-        // set organization contact data
-        // website
-        if ($formatter->getFormattedUrl($n['website'])) {
-            $organization['contact_data']['website'][] = [
-                'url' => $formatter->getFormattedUrl($n['website']),
-            ];
-        }
-
-        // phone numbers
-        if ($formatter->getFormattedNumber($n['phone'])) {
-            $organization['contact_data']['phone'][] = [
-                'number' => $formatter->getFormattedNumber($n['phone']),
-                'type'   => 'phone',
-            ];
-        }
-        if ($formatter->getFormattedNumber($n['fax'])) {
-            $organization['contact_data']['phone'][] = [
-                'number' => $formatter->getFormattedNumber($n['fax']),
-                'type'   => 'fax',
-            ];
-        }
-
-        // address
-        if ($n['address']) {
-            $organization['contact_data']['address'][] = [
-                'address' => $n['address'],
-                'city'    => $n['city'],
-                'zip'     => $n['postalcode'],
-                'state'   => $n['state'],
-                'country' => $n['country'],
-            ];
-        }
-
-        $writer->writeOrganization($n['userorganizationid'], $organization);
     }
+
+    // phone numbers
+    if ($formatter->getFormattedNumber($n['phone'])) {
+        $organization['contact_data']['phone'][] = [
+            'number' => $formatter->getFormattedNumber($n['phone']),
+            'type'   => 'phone',
+        ];
+    }
+    if ($formatter->getFormattedNumber($n['fax'])) {
+        $organization['contact_data']['phone'][] = [
+            'number' => $formatter->getFormattedNumber($n['fax']),
+            'type'   => 'fax',
+        ];
+    }
+
+    // address
+    if ($n['address']) {
+        $organization['contact_data']['address'][] = [
+            'address' => $n['address'],
+            'city'    => $n['city'],
+            'zip'     => $n['postalcode'],
+            'state'   => $n['state'],
+            'country' => $n['country'],
+        ];
+    }
+
+    $writer->writeOrganization($n['userorganizationid'], $organization);
 }
+
 
 //--------------------
 // Staff
@@ -89,31 +89,28 @@ $staffGroupsMapping = [
 
 
 $pager = $db->getPager('SELECT * FROM swstaffgroup');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        if (isset($staffGroupsMapping[$n['title']])) {
-            $staffGroups[$n['staffgroupid']] = $staffGroupsMapping[$n['title']];
-        } else {
-            $staffGroups[$n['staffgroupid']] = $n['title'];
-        }
+foreach ($pager as $n) {
+    if (isset($staffGroupsMapping[$n['title']])) {
+        $staffGroups[$n['staffgroupid']] = $staffGroupsMapping[$n['title']];
+    } else {
+        $staffGroups[$n['staffgroupid']] = $n['title'];
     }
 }
 
+
 $pager = $db->getPager('SELECT * FROM swstaff');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        $person = [
-            'name'        => $n['fullname'],
-            'emails'      => [$n['email']],
-            'is_disabled' => !$n['isenabled'],
-        ];
+foreach ($pager as $n) {
+    $person = [
+        'name'        => $n['fullname'],
+        'emails'      => [$n['email']],
+        'is_disabled' => !$n['isenabled'],
+    ];
 
-        if ($n['staffgroupid']) {
-            $person['agent_groups'][] = $staffGroups[$n['staffgroupid']];
-        }
-
-        $writer->writeAgent($n['staffid'], $person);
+    if ($n['staffgroupid']) {
+        $person['agent_groups'][] = $staffGroups[$n['staffgroupid']];
     }
+
+    $writer->writeAgent($n['staffid'], $person);
 }
 
 //--------------------
@@ -128,43 +125,39 @@ $userGroupsMapping = [
 ];
 
 $pager = $db->getPager('SELECT * FROM swusergroups');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        if (isset($userGroupsMapping[$n['title']])) {
-            $userGroups[$n['usergroupid']] = $userGroupsMapping[$n['title']];
-        } else {
-            $userGroups[$n['usergroupid']] = $n['title'];
-        }
+foreach ($pager as $n) {
+    if (isset($userGroupsMapping[$n['title']])) {
+        $userGroups[$n['usergroupid']] = $userGroupsMapping[$n['title']];
+    } else {
+        $userGroups[$n['usergroupid']] = $n['title'];
     }
 }
 
 $pager = $db->getPager('SELECT * FROM swusers');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        $person = [
-            'name'         => $n['fullname'],
-            'emails'       => ['imported.user.' . $n['userid'] . '@example.com'],
-            'is_disabled'  => !$n['isenabled'],
-            'organization' => $n['userorganizationid'],
-        ];
+foreach ($pager as $n) {
+    $person = [
+        'name'         => $n['fullname'],
+        'emails'       => ['imported.user.' . $n['userid'] . '@example.com'],
+        'is_disabled'  => !$n['isenabled'],
+        'organization' => $n['userorganizationid'],
+    ];
 
-        if ($n['usergroupid']) {
-            $person['user_groups'][] = $userGroups[$n['usergroupid']];
-        }
-
-        if ($person['organization']) {
-            $person['organization_position'] = $n['userdesignation'];
-        }
-
-        if ($formatter->getFormattedNumber($n['phone'])) {
-            $person['contact_data']['phone'][] = [
-                'number' => $formatter->getFormattedNumber($n['phone']),
-                'type'   => 'phone',
-            ];
-        }
-
-        $writer->writeUser($n['userid'], $person);
+    if ($n['usergroupid']) {
+        $person['user_groups'][] = $userGroups[$n['usergroupid']];
     }
+
+    if ($person['organization']) {
+        $person['organization_position'] = $n['userdesignation'];
+    }
+
+    if ($formatter->getFormattedNumber($n['phone'])) {
+        $person['contact_data']['phone'][] = [
+            'number' => $formatter->getFormattedNumber($n['phone']),
+            'type'   => 'phone',
+        ];
+    }
+
+    $writer->writeUser($n['userid'], $person);
 }
 
 //--------------------
@@ -179,49 +172,43 @@ $statusMapping = [
 ];
 
 $pager = $db->getPager('SELECT * FROM swtickets');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        $ticket = [
-            'subject'    => $n['subject'],
-            'person'     => $writer->userOid($n['userid']),
-            'agent'      => $writer->agentOid($n['staffid']),
-            'department' => $n['departmenttitle'],
-            'status'     => isset($statusMapping[$n['ticketstatustitle']]) ? $statusMapping[$n['ticketstatustitle']] : 'awaiting_agent',
+foreach ($pager as $n) {
+    $ticket = [
+        'subject'    => $n['subject'],
+        'person'     => $writer->userOid($n['userid']),
+        'agent'      => $writer->agentOid($n['staffid']),
+        'department' => $n['departmenttitle'],
+        'status'     => isset($statusMapping[$n['ticketstatustitle']]) ? $statusMapping[$n['ticketstatustitle']] : 'awaiting_agent',
+    ];
+
+    // get ticket messages
+    $messagePager = $db->getPager('SELECT * FROM swticketposts WHERE ticketid = :ticket_id', [
+        'ticket_id' => $n['ticketid'],
+    ]);
+
+    foreach ($messagePager as $m) {
+        $ticket['messages'][] = [
+            'oid'     => 'post_'.$m['ticketpostid'],
+            'person'  => $writer->userOid($m['userid']),
+            'message' => $m['contents'],
         ];
-
-        // get ticket messages
-        $messagePager = $db->getPager('SELECT * FROM swticketposts WHERE ticketid = :ticket_id', [
-            'ticket_id' => $n['ticketid'],
-        ]);
-
-        while ($messageData = $messagePager->next()) {
-            foreach ($messageData as $m) {
-                $ticket['messages'][] = [
-                    'oid'     => 'post_'.$m['ticketpostid'],
-                    'person'  => $writer->userOid($m['userid']),
-                    'message' => $m['contents'],
-                ];
-            }
-        }
-
-        // get ticket notes
-        $notesPager = $db->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
-            'ticket_id' => $n['ticketid'],
-        ]);
-
-        while ($messageData = $notesPager->next()) {
-            foreach ($messageData as $m) {
-                $ticket['messages'][] = [
-                    'oid'     => 'note_'.$m['ticketnoteid'],
-                    'person'  => $writer->agentOid($m['staffid']),
-                    'message' => $m['note'],
-                    'is_note' => true,
-                ];
-            }
-        }
-
-        $writer->writeTicket($n['ticketid'], $ticket);
     }
+
+    // get ticket notes
+    $notesPager = $db->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
+        'ticket_id' => $n['ticketid'],
+    ]);
+
+    foreach ($notesPager as $m) {
+        $ticket['messages'][] = [
+            'oid'     => 'note_'.$m['ticketnoteid'],
+            'person'  => $writer->agentOid($m['staffid']),
+            'message' => $m['note'],
+            'is_note' => true,
+        ];
+    }
+
+    $writer->writeTicket($n['ticketid'], $ticket);
 }
 
 //--------------------
@@ -235,14 +222,12 @@ $getArticleCategories = function ($parentId) use ($db, &$getArticleCategories) {
     ]);
 
     $categories = [];
-    while ($data = $pager->next()) {
-        foreach ($data as $n) {
-            $categories[] = [
-                'oid'        => $n['kbcategoryid'],
-                'title'      => $n['title'],
-                'categories' => $getArticleCategories($n['kbcategoryid']),
-            ];
-        }
+    foreach ($pager as $n) {
+        $categories[] = [
+            'oid'        => $n['kbcategoryid'],
+            'title'      => $n['title'],
+            'categories' => $getArticleCategories($n['kbcategoryid']),
+        ];
     }
 
     return $categories;
@@ -263,28 +248,24 @@ $statusMapping = [
 ];
 
 $pager = $db->getPager('SELECT * FROM swkbarticles');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        $article = [
-            'title'   => $n['subject'],
-            'person'  => $writer->agentOid($n['creatorid']),
-            'content' => '',
-            'status'  => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
-        ];
+foreach ($pager as $n) {
+    $article = [
+        'title'   => $n['subject'],
+        'person'  => $writer->agentOid($n['creatorid']),
+        'content' => '',
+        'status'  => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
+    ];
 
-        // get article content
-        $contentPager = $db->getPager('SELECT * FROM swkbarticledata WHERE kbarticleid = :article_id', [
-            'article_id' => $n['kbarticleid'],
-        ]);
+    // get article content
+    $contentPager = $db->getPager('SELECT * FROM swkbarticledata WHERE kbarticleid = :article_id', [
+        'article_id' => $n['kbarticleid'],
+    ]);
 
-        while ($data = $contentPager->next()) {
-            foreach ($data as $c) {
-                $article['content'] .= $c['contents'];
-            }
-        }
-
-        $writer->writeArticle($n['kbarticleid'], $article);
+    foreach ($contentPager as $c) {
+        $article['content'] .= $c['contents'];
     }
+
+    $writer->writeArticle($n['kbarticleid'], $article);
 }
 
 //--------------------
@@ -295,10 +276,8 @@ $output->startSection('News');
 
 $newsCategories = [];
 $pager = $db->getPager('SELECT * FROM swnewscategories');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        $newsCategories[$n['newscategoryid']] = $n['categorytitle'];
-    }
+foreach ($pager as $n) {
+    $newsCategories[$n['newscategoryid']] = $n['categorytitle'];
 }
 
 // todo need status mapping
@@ -307,37 +286,33 @@ $statusMapping = [
 ];
 
 $pager = $db->getPager('SELECT * FROM swnewsitems');
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        $news = [
-            'title'    => $n['subject'],
-            'person'   => $writer->agentOid($n['staffid']),
-            'content'  => '',
-            'status'   => isset($statusMapping[$n['newsstatus']]) ? $statusMapping[$n['newsstatus']] : 'published',
-        ];
+foreach ($pager as $n) {
+    $news = [
+        'title'    => $n['subject'],
+        'person'   => $writer->agentOid($n['staffid']),
+        'content'  => '',
+        'status'   => isset($statusMapping[$n['newsstatus']]) ? $statusMapping[$n['newsstatus']] : 'published',
+    ];
 
-        // get news content
-        $contentPager = $db->getPager('SELECT * FROM swnewsitemdata WHERE newsitemid = :news_id', [
-            'news_id' => $n['newsitemid'],
-        ]);
+    // get news content
+    $contentPager = $db->getPager('SELECT * FROM swnewsitemdata WHERE newsitemid = :news_id', [
+        'news_id' => $n['newsitemid'],
+    ]);
 
-        while ($data = $contentPager->next()) {
-            foreach ($data as $c) {
-                $news['content'] .= $c['contents'];
-            }
-        }
-
-        // get news category
-        $category = $db->findOne('SELECT * FROM swnewscategorylinks WHERE newsitemid = :news_id', [
-            'news_id' => $n['newsitemid'],
-        ]);
-
-        if ($category && isset($newsCategories[$category['newscategoryid']])) {
-            $news['category'] = $newsCategories[$category['newscategoryid']];
-        }
-
-        $writer->writeNews($n['newsitemid'], $news);
+    foreach ($contentPager as $c) {
+        $news['content'] .= $c['contents'];
     }
+
+    // get news category
+    $category = $db->findOne('SELECT * FROM swnewscategorylinks WHERE newsitemid = :news_id', [
+        'news_id' => $n['newsitemid'],
+    ]);
+
+    if ($category && isset($newsCategories[$category['newscategoryid']])) {
+        $news['category'] = $newsCategories[$category['newscategoryid']];
+    }
+
+    $writer->writeNews($n['newsitemid'], $news);
 }
 
 //--------------------
@@ -355,11 +330,9 @@ $pager = $db->getPager('SELECT * FROM swsettings WHERE section = :section AND vk
     'setting_names' => array_keys($settingMapping),
 ]);
 
-while ($data = $pager->next()) {
-    foreach ($data as $n) {
-        $writer->writeSetting($n['settingid'], [
-            'name'  => $settingMapping[$n['vkey']],
-            'value' => $n['data'],
-        ]);
-    }
+foreach ($pager as $n) {
+    $writer->writeSetting($n['settingid'], [
+        'name'  => $settingMapping[$n['vkey']],
+        'value' => $n['data'],
+    ]);
 }

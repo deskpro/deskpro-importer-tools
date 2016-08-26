@@ -96,7 +96,7 @@ class DbHelper
      */
     public function getPager($query, array $params = [], $perPage = 1000)
     {
-        return new DbPager($this->connection, $query, $params, $perPage);
+        return DbPager::getIterator(new DbPager($this->connection, $query, $params, $perPage));
     }
 
     /**
