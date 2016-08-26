@@ -121,4 +121,18 @@ class IncrementalPager
 
         return $items;
     }
+
+    /**
+     * @param mixed $pager
+     *
+     * @return \Generator
+     */
+    public static function getIterator($pager)
+    {
+        while ($data = $pager->getNext()) {
+            foreach ($data as $n) {
+                yield $n;
+            }
+        }
+    }
 }
