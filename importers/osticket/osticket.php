@@ -349,6 +349,7 @@ foreach ($pager->getIterator() as $n) {
 $output->startSection('Tickets');
 $pager = $db->getPager("SELECT * FROM {$tablePrefix}ticket");
 
+// ticket statuses
 $ticketStatusesMap = [
     'open'     => 'awaiting_agent',
     'closed'   => 'resolved',
@@ -365,16 +366,28 @@ foreach ($db->findAll("SELECT * FROM {$tablePrefix}ticket_status") as $ticketSta
     }
 }
 
+// ticket departments
+$ticketDepartmentsMap = [];
+foreach ($db->findAll("SELECT * FROM {$tablePrefix}department") as $department) {
+    $ticketDepartmentsMap[$department['dept_id']] = $department['dept_name'];
+}
+
 foreach ($pager->getIterator() as $n) {
     $ticket = [
         'person' => $writer->userOid($n['user_id']),
         'agent'  => $writer->agentOid($n['staff_id']),
     ];
 
+    // ticket status
     if (isset($ticketStatusesIdMap[$n['status_id']])) {
         $ticket['status'] = $ticketStatusesIdMap[$n['status_id']];
     } else {
         $ticket['status'] = 'awaiting_agent';
+    }
+
+    // ticket department
+    if (isset($ticketDepartmentsMap[$n['dept_id']])) {
+        $ticket['department'] = $ticketDepartmentsMap[$n['dept_id']];
     }
 
     // custom and contact data
