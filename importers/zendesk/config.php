@@ -2,9 +2,9 @@
 
 $CONFIG = [];
 $CONFIG['account'] = [
-    'subdomain' => 'cuvox80',
-    'username'  => 'oret1992@cuvox.de',
-    'token'     => 'YYpi2aIjXMH8tTZFbBq3tRuiwrqZM4tHClAzUJIl',
+    'subdomain' => 'dev57',
+    'username'  => '0wyoivz@dispostable.com',
+    'token'     => 'U3YxdX8gXuGuCWv1tdUSj8VbfdWHyf3gLnderFOk',
     'auth_type' => 'basic',
 ];
 
