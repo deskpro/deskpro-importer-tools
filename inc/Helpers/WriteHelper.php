@@ -35,6 +35,7 @@ use Orb\Util\Strings;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
@@ -71,6 +72,11 @@ class WriteHelper
      * @var int
      */
     private $page = 1;
+
+    /**
+     * @var array
+     */
+    private $writtenCounts = [];
 
     /**
      * @var Model\PrimaryImportModelInterface
@@ -134,26 +140,24 @@ class WriteHelper
         }
 
         $this->path = $path;
-    }
 
-    /**
-     * @param int $page
-     */
-    public function setPage($page)
-    {
-        if ($page < 1) {
-            throw new \RuntimeException('Page should be greater than 0.');
+        // calc the current page
+        $finder = new Finder();
+        $finder
+            ->in($this->path)
+            ->directories()
+            ->sort(function (\SplFileInfo $a, \SplFileInfo $b) {
+                return (int) $b->getFilename() - (int) $a->getFilename();
+            })
+        ;
+
+        /** @var \SplFileInfo $dir */
+        $dir = $finder->getIterator()->current();
+        if ($dir) {
+            $this->page = (int) $dir->getFilename() + 1;
+        } else {
+            $this->page = 1;
         }
-
-        $this->page = (int) $page;
-    }
-
-    /**
-     * Increment page num.
-     */
-    public function advancePage()
-    {
-        ++$this->page;
     }
 
     /**
@@ -408,6 +412,14 @@ class WriteHelper
             if (!file_put_contents($filePath, $encoded)) {
                 throw new \RuntimeException("Unable to write to '$filePath'");
             }
+
+            // remember num count to calc destination path properly
+            if (!isset($this->writtenCounts[$modelClassName])) {
+                $this->writtenCounts[$modelClassName] = 0;
+            }
+
+            $this->writtenCounts[$modelClassName]++;
+
         } catch (\Exception $e) {
             $this->logger->error("Unable to write model: {$e->getMessage()}");
             $this->logger->error('Raw data:');
@@ -430,8 +442,13 @@ class WriteHelper
             throw new \Exception('Output path is not defined');
         }
 
-        $entityPath     = $this->getModelType($model);
-        $batchModelPath = sprintf('%s/%d/%s', $this->path, $this->page, $entityPath);
+        if (!isset($this->writtenCounts[get_class($model)])) {
+            $this->writtenCounts[get_class($model)] = 0;
+        }
+
+        $currentBatchNum = $this->page + (int) ($this->writtenCounts[get_class($model)] / 2);
+        $entityPath      = $this->getModelType($model);
+        $batchModelPath  = sprintf('%s/%d/%s', $this->path, $currentBatchNum, $entityPath);
 
         $fs = new Filesystem();
         $fs->mkdir($batchModelPath);
