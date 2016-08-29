@@ -286,7 +286,7 @@ foreach ($pager as $n) {
     $agent = [
         'name'         => $n['firstname'].' '.$n['lastname'],
         'emails'       => [$n['email']],
-        'can_admin'    => $n['isadmin'],
+        'is_admin'     => $n['isadmin'],
         'is_disabled'  => !$n['isactive'],
         'date_created' => $formatter->getFormattedDate($n['created']),
     ];
@@ -433,9 +433,8 @@ $pager = $db->getPager("SELECT * FROM {$tablePrefix}faq_category");
 
 foreach ($pager as $n) {
     $writer->writeArticleCategory($n['category_id'], [
-        'title'        => $n['name'],
-        'is_agent'     => !$n['ispublic'],
-        'date_created' => $formatter->getFormattedDate($n['created']),
+        'title'    => $n['name'],
+        'is_agent' => !$n['ispublic'],
     ]);
 }
 

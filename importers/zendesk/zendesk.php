@@ -93,7 +93,7 @@ foreach ($pager as $n) {
     $ticket = [
         'subject' => $n['subject'],
         'status'  => $statusMapping[$n['status']],
-        'user'    => $n['requester_id'],
+        'person'  => $n['requester_id'],
         'agent'   => $n['assignee_id'],
         'labels'  => $n['tags'],
     ];
