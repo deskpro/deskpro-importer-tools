@@ -121,7 +121,7 @@ class ZenDeskReader
      *
      * @return array
      */
-    public function getPeopleFields()
+    public function getPersonFields()
     {
         $fields = [];
         $result = $this->adapter->doRequest(new Request(CoreAPI\PersonField::class, 'findAll'));

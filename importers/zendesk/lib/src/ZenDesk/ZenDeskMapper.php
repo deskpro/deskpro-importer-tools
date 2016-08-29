@@ -259,4 +259,28 @@ class ZenDeskMapper
         'Chatham Is.'                  => 'Pacific/Chatham',
         'Samoa'                        => 'Pacific/Apia',
     ];
+
+    /**
+     * @param string$locale
+     *
+     * @return null|string
+     */
+    public static function getLanguageByLocale($locale)
+    {
+        if (!$locale) {
+            return;
+        }
+
+        if (is_array($locale)) {
+            $locale = reset($locale);
+        }
+
+        if (!isset(self::$localeMapping[$locale])) {
+            return;
+        }
+
+        $language = self::$localeMapping[$locale];
+
+        return $language !== '?' ? $language : null;
+    }
 }
