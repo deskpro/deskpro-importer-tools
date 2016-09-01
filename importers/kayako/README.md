@@ -11,7 +11,7 @@ After this tool completes, you will run the standard DeskPRO import process to s
 * Agents (Staff)
 * Usergroups
 * Users (name, email, organization, organization position, is_disabled, phone)
-* Tickets (Status, subject, person, agent, department)
+* Tickets (status, subject, person, agent, department)
 * Ticket Messages
 * Ticket (Agent) Notes
 * Knowledgebase (Categories & Articles)
@@ -22,7 +22,7 @@ After this tool completes, you will run the standard DeskPRO import process to s
 * Download https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip
 * Unzip `deskpro-importer-tools-master.zip`
 * Move `deskpro-importer-tools-master` into DeskPRO's `/bin/` directory
-* Edit the config values in the `/path/to/deskpro/bin/deskpro-importer-tools/importers/kayako/config.php`
+* Edit the config values in the `/path/to/deskpro/bin/deskpro-importer-tools-master/importers/kayako/config.php`
 
 **Import Data**
 
