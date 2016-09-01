@@ -10,13 +10,14 @@ DeskPRO includes a tool to upload a CSV of your user data directly from within t
 
 [DeskPRO Manual : CSV User Import](https://manuals.deskpro.com/html/admin/importing-data/csv-user-import.html)
 
-### 2. I'm currently using Kayako, Zendesk or Spiceworks.
+### 2. I'm currently using Kayako, Zendesk, OsTicket, Spiceworks.
 
-We currently provide importers for these 3 products. Please follow the instructions for the product you wish to import your data from.
+We currently provide importers for the following products. Please follow the instructions for the product you wish to import your data from.
 
  1. [Importing my data from Kayako into DeskPRO](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/importers/kayako/README.md)
  2. [Importing my data from Zendesk into DeskPRO](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/importers/zendesk/README.md)
  3. [Importing my data from Spiceworks into DeskPRO](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/importers/spiceworks/README.md)
+ 4. [Importing my data from OsTicket into DeskPRO](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/importers/osticket/README.md)
  
 ### 3. I'm using a different product.
 
