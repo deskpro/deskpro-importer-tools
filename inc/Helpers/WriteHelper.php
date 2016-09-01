@@ -446,7 +446,7 @@ class WriteHelper
             $this->writtenCounts[get_class($model)] = 0;
         }
 
-        $currentBatchNum = $this->page + (int) ($this->writtenCounts[get_class($model)] / 2);
+        $currentBatchNum = $this->page + (int) ($this->writtenCounts[get_class($model)] / 100);
         $entityPath      = $this->getModelType($model);
         $batchModelPath  = sprintf('%s/%d/%s', $this->path, $currentBatchNum, $entityPath);
 

@@ -151,6 +151,30 @@ class FormatHelper
     }
 
     /**
+     * @param string $email
+     *
+     * @return bool
+     */
+    public function isEmailValid($email)
+    {
+        if (!$email) {
+            return false;
+        }
+
+        $errors = $this->validator->validate($email, [
+            new Assert\Email(),
+        ]);
+
+        if (count($errors)) {
+            $this->logger->warning("Email `$email` is not valid");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * @param string $date
      *
      * @return string
