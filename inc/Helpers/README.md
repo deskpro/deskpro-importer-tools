@@ -2,7 +2,7 @@
 
 - [Attachment helper](#attachment-helper)
 - [Writer helper](#writer-helper)
-- [Db helper](#db-helper)
+- [Database helper](#database-helper)
 - [Format helper](#format-helper)
 - [Output helper](#output-helper)
 
