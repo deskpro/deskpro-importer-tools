@@ -10,6 +10,7 @@ Settings
 
 ### Available settings list
 
-| Setting name  | Description               |
-|---------------|---------------------------|
-| core.site_url | Your company website url. |
+| Setting name           | Description                 |
+|------------------------|-----------------------------|
+| core.core.deskpro_name | Your company helpdesk name. |
+| core.core.deskpro_url  | Your company helpdesk url.  |
