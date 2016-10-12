@@ -137,7 +137,7 @@ $pager = $db->getPager('SELECT * FROM swusers');
 foreach ($pager as $n) {
     $person = [
         'name'         => $n['fullname'],
-        'emails'       => ['imported.user.' . $n['userid'] . '@example.com'],
+        'emails'       => ['imported.user.' . $n['userid'] . '@example.com'], // todo fake email for now, need to join actual email in sql query
         'is_disabled'  => !$n['isenabled'],
         'organization' => $n['userorganizationid'],
     ];
@@ -187,6 +187,10 @@ foreach ($pager as $n) {
     ]);
 
     foreach ($messagePager as $m) {
+        if (!$m['userid']) {
+            continue;
+        }
+
         $ticket['messages'][] = [
             'oid'     => 'post_'.$m['ticketpostid'],
             'person'  => $writer->userOid($m['userid']),
@@ -200,6 +204,10 @@ foreach ($pager as $n) {
     ]);
 
     foreach ($notesPager as $m) {
+        if (!$m['staffid']) {
+            continue;
+        }
+
         $ticket['messages'][] = [
             'oid'     => 'note_'.$m['ticketnoteid'],
             'person'  => $writer->agentOid($m['staffid']),
