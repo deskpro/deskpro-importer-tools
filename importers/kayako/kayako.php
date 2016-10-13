@@ -135,9 +135,19 @@ foreach ($pager as $n) {
 
 $pager = $db->getPager('SELECT * FROM swusers');
 foreach ($pager as $n) {
+    // todo need to confirm that it's correct fetching
+    $emails = $db->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $n['userid']]);
+    $emails = array_map(function (array $email) {
+        return $email['email'];
+    }, $emails);
+
+    if (empty($emails)) {
+        $emails[] = 'imported.user.' . $n['userid'] . '@example.com';
+    }
+
     $person = [
         'name'         => $n['fullname'],
-        'emails'       => ['imported.user.' . $n['userid'] . '@example.com'],
+        'emails'       => $emails,
         'is_disabled'  => !$n['isenabled'],
         'organization' => $n['userorganizationid'],
     ];
@@ -187,6 +197,10 @@ foreach ($pager as $n) {
     ]);
 
     foreach ($messagePager as $m) {
+        if (!$m['userid']) {
+            continue;
+        }
+
         $ticket['messages'][] = [
             'oid'     => 'post_'.$m['ticketpostid'],
             'person'  => $writer->userOid($m['userid']),
@@ -200,6 +214,10 @@ foreach ($pager as $n) {
     ]);
 
     foreach ($notesPager as $m) {
+        if (!$m['staffid']) {
+            continue;
+        }
+
         $ticket['messages'][] = [
             'oid'     => 'note_'.$m['ticketnoteid'],
             'person'  => $writer->agentOid($m['staffid']),
@@ -249,11 +267,20 @@ $statusMapping = [
 
 $pager = $db->getPager('SELECT * FROM swkbarticles');
 foreach ($pager as $n) {
+    // todo need to confirm that it's correct fetching
+    $categories = $db->findAll('SELECT * FROM swkbarticlelinks WHERE kbarticleid = :article_id AND linktypeid > 0', [
+        'article_id' => $n['kbarticleid']
+    ]);
+    $categories = array_map(function($category) {
+        return $category['linktypeid'];
+    }, $categories);
+
     $article = [
-        'title'   => $n['subject'],
-        'person'  => $writer->agentOid($n['creatorid']),
-        'content' => '',
-        'status'  => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
+        'title'      => $n['subject'],
+        'person'     => $writer->agentOid($n['creatorid']),
+        'content'    => '',
+        'status'     => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
+        'categories' => $categories,
     ];
 
     // get article content
