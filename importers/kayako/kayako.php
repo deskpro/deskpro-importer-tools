@@ -135,9 +135,19 @@ foreach ($pager as $n) {
 
 $pager = $db->getPager('SELECT * FROM swusers');
 foreach ($pager as $n) {
+    // todo need to confirm that it's correct fetching
+    $emails = $db->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $n['userid']]);
+    $emails = array_map(function (array $email) {
+        return $email['email'];
+    }, $emails);
+
+    if (empty($emails)) {
+        $emails[] = 'imported.user.' . $n['userid'] . '@example.com';
+    }
+
     $person = [
         'name'         => $n['fullname'],
-        'emails'       => ['imported.user.' . $n['userid'] . '@example.com'], // todo fake email for now, need to join actual email in sql query
+        'emails'       => $emails,
         'is_disabled'  => !$n['isenabled'],
         'organization' => $n['userorganizationid'],
     ];
