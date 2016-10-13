@@ -267,11 +267,20 @@ $statusMapping = [
 
 $pager = $db->getPager('SELECT * FROM swkbarticles');
 foreach ($pager as $n) {
+    // todo need to confirm that it's correct fetching
+    $categories = $db->findAll('SELECT * FROM swkbarticlelinks WHERE kbarticleid = :article_id AND linktypeid > 0', [
+        'article_id' => $n['kbarticleid']
+    ]);
+    $categories = array_map(function($category) {
+        return $category['linktypeid'];
+    }, $categories);
+
     $article = [
-        'title'   => $n['subject'],
-        'person'  => $writer->agentOid($n['creatorid']),
-        'content' => '',
-        'status'  => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
+        'title'      => $n['subject'],
+        'person'     => $writer->agentOid($n['creatorid']),
+        'content'    => '',
+        'status'     => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
+        'categories' => $categories,
     ];
 
     // get article content
