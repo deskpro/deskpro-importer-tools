@@ -204,13 +204,20 @@ foreach ($pager as $n) {
     ]);
 
     foreach ($messagePager as $m) {
-        if (!$m['userid']) {
-            continue;
+        $person = null;
+        if ($m['userid']) {
+            $person = $writer->userOid($m['userid']);
+        } elseif ($m['staffid']) {
+            $person = $writer->agentOid($m['staffid']);
+        } elseif ($m['email']) {
+            $person = $m['email'];
+        } else {
+            $person = 'imported.message.' . $n['ticketpostid'] . '@example.com';
         }
 
         $ticket['messages'][] = [
             'oid'     => 'post_'.$m['ticketpostid'],
-            'person'  => $writer->userOid($m['userid']),
+            'person'  => $person,
             'message' => $m['contents'],
         ];
     }
