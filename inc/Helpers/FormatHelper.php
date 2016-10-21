@@ -142,7 +142,7 @@ class FormatHelper
         ]);
 
         if (count($errors)) {
-            $this->logger->warning("Url `$url` is not valid");
+            $this->logger->warning("Url `$url` is not valid.");
 
             return '';
         }
@@ -166,7 +166,7 @@ class FormatHelper
         ]);
 
         if (count($errors)) {
-            $this->logger->warning("Email `$email` is not valid");
+            $this->logger->warning("Email `$email` is not valid.");
 
             return false;
         }

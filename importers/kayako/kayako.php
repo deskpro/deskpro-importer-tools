@@ -100,9 +100,14 @@ foreach ($pager as $n) {
 
 $pager = $db->getPager('SELECT * FROM swstaff');
 foreach ($pager as $n) {
+    $email = $n['email'];
+    if (!$formatter->isEmailValid($email)) {
+        $email = 'imported.agent.' . $n['staffid'] . '@example.com';
+    }
+
     $person = [
         'name'        => $n['fullname'],
-        'emails'      => [$n['email']],
+        'emails'      => [$email],
         'is_disabled' => !$n['isenabled'],
     ];
 
@@ -135,11 +140,13 @@ foreach ($pager as $n) {
 
 $pager = $db->getPager('SELECT * FROM swusers');
 foreach ($pager as $n) {
-    // todo need to confirm that it's correct fetching
-    $emails = $db->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $n['userid']]);
-    $emails = array_map(function (array $email) {
-        return $email['email'];
-    }, $emails);
+    $emails     = [];
+    $emailsRows = $db->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $n['userid']]);
+    foreach ($emailsRows as $emailsRow) {
+        if ($formatter->isEmailValid($emailsRow['email'])) {
+            $emails[] = $emailsRow['email'];
+        }
+    }
 
     if (empty($emails)) {
         $emails[] = 'imported.user.' . $n['userid'] . '@example.com';
