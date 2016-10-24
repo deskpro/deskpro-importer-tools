@@ -162,7 +162,9 @@ class FormatHelper
         }
 
         $errors = $this->validator->validate($email, [
-            new Assert\Email(),
+            new Assert\Email([
+                'strict' => true,
+            ]),
         ]);
 
         if (count($errors)) {
