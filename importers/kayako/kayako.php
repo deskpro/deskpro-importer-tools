@@ -159,7 +159,7 @@ foreach ($pager as $n) {
         'organization' => $n['userorganizationid'],
     ];
 
-    if ($n['usergroupid']) {
+    if ($n['usergroupid'] && isset($userGroups[$n['usergroupid']])) {
         $person['user_groups'][] = $userGroups[$n['usergroupid']];
     }
 
