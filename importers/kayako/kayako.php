@@ -153,7 +153,7 @@ foreach ($pager as $n) {
     }
 
     $person = [
-        'name'         => $n['fullname'],
+        'name'         => $n['fullname'] ?: $emails[0],
         'emails'       => $emails,
         'is_disabled'  => !$n['isenabled'],
         'organization' => $n['userorganizationid'],
