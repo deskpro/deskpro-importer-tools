@@ -406,8 +406,20 @@ class WriteHelper
                 throw new \RuntimeException("$modelType #$oid validation is failed:\n$encodedErrors");
             }
 
-            $encoded  = $this->serializer->serialize($model, 'json');
             $filePath = $this->getModelPath($model);
+
+            try {
+                $encoded = $this->serializer->serialize($model, 'json');
+            } catch (\Exception $e) {
+                $encoded = null;
+            }
+
+            if (!$encoded) {
+                $this->logger->warning('Unable to encode model:');
+                var_dump($rawData);
+
+                return;
+            }
 
             if (!file_put_contents($filePath, $encoded)) {
                 throw new \RuntimeException("Unable to write to '$filePath'");
