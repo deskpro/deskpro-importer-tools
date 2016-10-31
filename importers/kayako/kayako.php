@@ -204,6 +204,10 @@ foreach ($pager as $n) {
     ]);
 
     foreach ($messagePager as $m) {
+        if (!$m['contents']) {
+            $m['contents'] = 'empty content';
+        }
+
         $person = null;
         if ($m['userid']) {
             $person = $writer->userOid($m['userid']);
@@ -230,6 +234,9 @@ foreach ($pager as $n) {
     foreach ($notesPager as $m) {
         if (!$m['staffid']) {
             continue;
+        }
+        if (!$m['note']) {
+            $m['note'] = 'empty content';
         }
 
         $ticket['messages'][] = [
