@@ -8,4 +8,5 @@ $CONFIG['dbinfo'] = [
     'password' => '',
     'dbname'   => 'kayako',
     'driver'   => 'pdo_mysql',
+    'charset'  => 'utf8',
 ];

@@ -8,6 +8,7 @@ $CONFIG['dbinfo'] = [
     'password' => '',
     'dbname'   => 'osticket',
     'driver'   => 'pdo_mysql',
+    'charset'  => 'utf8',
 ];
 
 $CONFIG['table_prefix'] = 'ost_';
