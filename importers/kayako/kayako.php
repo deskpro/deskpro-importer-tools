@@ -191,7 +191,7 @@ $statusMapping = [
 $pager = $db->getPager('SELECT * FROM swtickets');
 foreach ($pager as $n) {
     $ticket = [
-        'subject'    => $n['subject'],
+        'subject'    => $n['subject'] ?: 'No subject',
         'person'     => $writer->userOid($n['userid']),
         'agent'      => $writer->agentOid($n['staffid']),
         'department' => $n['departmenttitle'],
