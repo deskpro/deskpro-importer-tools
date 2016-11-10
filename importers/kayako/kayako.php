@@ -81,7 +81,7 @@ foreach ($pager as $n) {
 
 $output->startSection('Staff');
 
-$staffEmails        = [];
+$staffEmailsMapping = [];
 $staffGroups        = [];
 $staffGroupsMapping = [
     'Administrator' => 'All Permissions',
@@ -101,9 +101,10 @@ foreach ($pager as $n) {
 
 $pager = $db->getPager('SELECT * FROM swstaff');
 foreach ($pager as $n) {
-    $email = $n['email'];
+    $staffId = $n['staffid'];
+    $email   = $n['email'];
     if (!$formatter->isEmailValid($email)) {
-        $email = 'imported.agent.' . $n['staffid'] . '@example.com';
+        $email = 'imported.agent.'.$staffId.'@example.com';
     }
 
     $person = [
@@ -119,8 +120,8 @@ foreach ($pager as $n) {
         $person['is_admin'] = true;
     }
 
-    $writer->writeAgent($n['staffid'], $person);
-    $staffEmails[$email] = $email;
+    $writer->writeAgent($staffId, $person);
+    $staffEmailsMapping[$email] = $staffId;
 }
 
 //--------------------
@@ -143,23 +144,38 @@ foreach ($pager as $n) {
     }
 }
 
+// we can have end-user and agent with same email address so prepare mapping their ids mapping by email
+$userAgentsMapping = [];
+
 $pager = $db->getPager('SELECT * FROM swusers');
 foreach ($pager as $n) {
-    $emails     = [];
-    $emailsRows = $db->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $n['userid']]);
+    $userId = $n['userid'];
+
+    $userEmails = [];
+    $emailsRows = $db->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $userId]);
+
     foreach ($emailsRows as $emailsRow) {
-        if ($formatter->isEmailValid($emailsRow['email']) && !isset($staffEmails[$emailsRow['email']])) {
-            $emails[] = $emailsRow['email'];
+        $email = $emailsRow['email'];
+        if ($formatter->isEmailValid($email)) {
+            $userEmails[] = $email;
+
+            // check for agent with the same email address
+            if (isset($staffEmailsMapping[$email])) {
+                $userAgentsMapping[$userId] = $staffEmailsMapping[$email];
+
+                // ignore writing user as we already have the agent with this email address
+                continue 2;
+            }
         }
     }
 
-    if (empty($emails)) {
-        $emails[] = 'imported.user.' . $n['userid'] . '@example.com';
+    if (empty($userEmails)) {
+        $userEmails[] = 'imported.user.'.$userId.'@example.com';
     }
 
     $person = [
-        'name'         => $n['fullname'] ?: $emails[0],
-        'emails'       => $emails,
+        'name'         => $n['fullname'] ?: $userEmails[0],
+        'emails'       => $userEmails,
         'is_disabled'  => !$n['isenabled'],
         'organization' => $n['userorganizationid'],
     ];
@@ -179,7 +195,7 @@ foreach ($pager as $n) {
         ];
     }
 
-    $writer->writeUser($n['userid'], $person);
+    $writer->writeUser($userId, $person);
 }
 
 //--------------------
@@ -195,9 +211,15 @@ $statusMapping = [
 
 $pager = $db->getPager('SELECT * FROM swtickets');
 foreach ($pager as $n) {
+    if (isset($userAgentsMapping[$n['userid']])) {
+        $person = $writer->agentOid($userAgentsMapping[$n['userid']]);
+    } else {
+        $person = $writer->userOid($n['userid']);
+    }
+
     $ticket = [
         'subject'    => $n['subject'] ?: 'No subject',
-        'person'     => $writer->userOid($n['userid']),
+        'person'     => $person,
         'agent'      => $writer->agentOid($n['staffid']),
         'department' => $n['departmenttitle'],
         'status'     => isset($statusMapping[$n['ticketstatustitle']]) ? $statusMapping[$n['ticketstatustitle']] : 'awaiting_agent',
@@ -215,7 +237,11 @@ foreach ($pager as $n) {
 
         $person = null;
         if ($m['userid']) {
-            $person = $writer->userOid($m['userid']);
+            if (isset($userAgentsMapping[$m['userid']])) {
+                $person = $writer->agentOid($userAgentsMapping[$m['userid']]);
+            } else {
+                $person = $writer->userOid($m['userid']);
+            }
         } elseif ($m['staffid']) {
             $person = $writer->agentOid($m['staffid']);
         } elseif ($m['email']) {
