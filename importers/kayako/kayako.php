@@ -114,6 +114,9 @@ foreach ($pager as $n) {
     if ($n['staffgroupid']) {
         $person['agent_groups'][] = $staffGroups[$n['staffgroupid']];
     }
+    if (isset($person['agent_groups']) && in_array('All Permissions', $person['agent_groups'])) {
+        $person['is_admin'] = true;
+    }
 
     $writer->writeAgent($n['staffid'], $person);
 }
