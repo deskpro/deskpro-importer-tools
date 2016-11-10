@@ -81,6 +81,7 @@ foreach ($pager as $n) {
 
 $output->startSection('Staff');
 
+$staffEmails        = [];
 $staffGroups        = [];
 $staffGroupsMapping = [
     'Administrator' => 'All Permissions',
@@ -119,6 +120,7 @@ foreach ($pager as $n) {
     }
 
     $writer->writeAgent($n['staffid'], $person);
+    $staffEmails[$email] = $email;
 }
 
 //--------------------
@@ -146,7 +148,7 @@ foreach ($pager as $n) {
     $emails     = [];
     $emailsRows = $db->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $n['userid']]);
     foreach ($emailsRows as $emailsRow) {
-        if ($formatter->isEmailValid($emailsRow['email'])) {
+        if ($formatter->isEmailValid($emailsRow['email']) && !isset($staffEmails[$emailsRow['email']])) {
             $emails[] = $emailsRow['email'];
         }
     }
