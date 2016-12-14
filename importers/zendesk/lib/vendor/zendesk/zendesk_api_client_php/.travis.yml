@@ -1,0 +1,17 @@
+language: php
+php:
+  - 5.6
+  - 5.5
+  - 7.0
+matrix:
+  allow_failures:
+    - php: 7.0
+install:
+  - travis_retry composer self-update && composer install
+script:
+  - vendor/bin/phpunit --testsuite "Zendesk API Unit Test Suites"
+  - vendor/bin/phpcs --extensions=php --standard=PSR2 --report=summary -np src/ tests/
+notifications:
+  email: false
+  flowdock:
+    secure: "iLK+qx1LS206GMddngYGToivo0Tq2rx0WNNFdQNTYSltLm8scEBuAzziqH3paTmfD9f312aV1RbDogLqO/ksDQx4CIfnGE3r/UwGmj+aG2AooqZijLHNITf7mU9dmNH2niNbxM7IwOZpZhd30y1D7U6hZdMCiS7bVxJ5fjdfMSw="
