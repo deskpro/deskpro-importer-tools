@@ -71,7 +71,7 @@ Use `importers/mytool/lib` directory for your classes and vendors. See the ZenDe
 
 ### File structure
 
-If you are not going to build own import tool based on `custom.php` and just want to import existing json files then you need to prepare the following directory structure. The file path template is "{base_path}/{batch_num}/{object_type}/{filename.json}":
+If you are not going to build own import tool based on `custom.php` and just want to import existing json files then you need to prepare the following directory structure. The file path template is `{base_path}/{batch_num}/{object_type}/{filename.json}`:
 
 ```
   example_data
