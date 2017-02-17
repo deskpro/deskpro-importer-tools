@@ -68,3 +68,48 @@ Basically the importer script is a self-contained file with a simple data mappin
 But sometimes it's pretty hard to write a simple script in a single file or needs to use composer to install third-party components.
 
 Use `importers/mytool/lib` directory for your classes and vendors. See the ZenDesk importer [files structure](../importers/zendesk/lib).
+
+### File structure
+
+If you are not going to build own import tool based on `custom.php` and just want to import existing json files then you need to prepare the following directory structure. The file path template is `{base_path}/{batch_num}/{object_type}/{filename.json}`:
+
+```
+  example_data
+       |--1 (e.g. batch num)
+           |--ticket
+                 |--ticket1.json
+                 |--ticket2.json
+                 |--ticket3.json
+                 ...
+           |--person
+                 |--person1.json
+                 |--person2.json
+                 |--person3.json
+           |--article
+                 |--article1.json
+                 |--article2.json
+                 |--article3.json
+           ...
+       |--2 
+           |--ticket 
+                 |--ticket101.json 
+                 |--ticket102.json 
+                 |--ticket103.json
+                 ...
+       |--3 
+           |--ticket 
+                 |--ticket201.json 
+                 |--ticket202.json 
+                 |--ticket203.json 
+                 ...
+```
+
+### How to run import
+
+You can now optionally verify the integrity of your data:
+
+`$ php bin/import verify --input-path=/path/to/your/json/files/base/path`
+
+When you're ready, go ahead and apply the import to your live database:
+
+`$ php bin/import apply --input-path=/path/to/your/json/files/base/path`
