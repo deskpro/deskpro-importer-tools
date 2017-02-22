@@ -278,6 +278,19 @@ foreach ($pager as $n) {
         ];
     }
 
+    if (!$ticket['person']) {
+        // person is a mandatory field
+        // if it's not set on the ticket then try to get it from the first message
+        if (isset($ticket['messages'][0]['person'])) {
+            $ticket['person'] = $ticket['messages'][0]['person'];
+        }
+
+        // otherwise generate a fake one to prevent validation errors
+        if (!$ticket['person']) {
+            $ticket['person'] = 'imported.ticket.user.'.$n['ticketid'].'@example.com';
+        }
+    }
+
     $writer->writeTicket($n['ticketid'], $ticket);
 }
 
