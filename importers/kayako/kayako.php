@@ -358,6 +358,10 @@ foreach ($pager as $n) {
         $article['content'] .= $c['contents'];
     }
 
+    if (!$article['content']) {
+        $article['content'] = 'no content';
+    }
+
     $writer->writeArticle($n['kbarticleid'], $article);
 }
 
@@ -394,6 +398,10 @@ foreach ($pager as $n) {
 
     foreach ($contentPager as $c) {
         $news['content'] .= $c['contents'];
+    }
+
+    if (!$news['content']) {
+        $news['content'] = 'no content';
     }
 
     // get news category
