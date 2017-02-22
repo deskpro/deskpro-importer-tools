@@ -188,9 +188,10 @@ foreach ($pager as $n) {
         $person['organization_position'] = $n['userdesignation'];
     }
 
-    if ($formatter->getFormattedNumber($n['phone'])) {
+    $phone = $formatter->getFormattedNumber($n['phone']);
+    if ($phone) {
         $person['contact_data']['phone'][] = [
-            'number' => $formatter->getFormattedNumber($n['phone']),
+            'number' => $phone,
             'type'   => 'phone',
         ];
     }
