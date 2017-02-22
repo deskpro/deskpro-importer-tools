@@ -319,6 +319,9 @@ class FormatHelper
             return '';
         }
 
+        $number = preg_replace('#[^0-9]#', '', $number);
+        $number = preg_replace('#^0+#', '', $number);
+
         $numberUtil   = PhoneNumberUtil::getInstance();
         $parsedNumber = null;
 
