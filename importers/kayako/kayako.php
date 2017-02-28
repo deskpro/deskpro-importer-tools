@@ -205,9 +205,14 @@ foreach ($pager as $n) {
 
 $output->startSection('Tickets');
 $statusMapping = [
-    'Open'        => 'awaiting_agent',
-    'In Progress' => 'awaiting_agent',
-    'Closed'      => 'resolved',
+    'Open'          => 'awaiting_agent',
+    'In Progress'   => 'awaiting_agent',
+    'With Engineer' => 'awaiting_agent',
+    'Answered'      => 'awaiting_user',
+    'On Hold'       => 'on_hold',
+    'Overdue'       => 'awaiting_agent',
+    'Resolved'      => 'resolved',
+    'Closed'        => 'resolved',
 ];
 
 $pager = $db->getPager('SELECT * FROM swtickets');
@@ -225,6 +230,12 @@ foreach ($pager as $n) {
         'department' => $n['departmenttitle'],
         'status'     => isset($statusMapping[$n['ticketstatustitle']]) ? $statusMapping[$n['ticketstatustitle']] : 'awaiting_agent',
     ];
+
+    // dp doesn't have 'on_hold' status but has is_hold flag
+    if ($ticket['status'] === 'on_hold') {
+        $ticket['status']  = 'awaiting_agent';
+        $ticket['is_hold'] = true;
+    }
 
     // get ticket messages
     $messagePager = $db->getPager('SELECT * FROM swticketposts WHERE ticketid = :ticket_id', [
