@@ -35,7 +35,8 @@ $pager = $db->getPager('SELECT * FROM swuserorganizations');
 
 foreach ($pager as $n) {
     $organization = [
-        'name' => $n['organizationname'],
+        'name'         => $n['organizationname'],
+        'date_created' => date('c', $n['dateline']),
     ];
 
     // set organization contact data
@@ -178,6 +179,7 @@ foreach ($pager as $n) {
         'emails'       => $userEmails,
         'is_disabled'  => !$n['isenabled'],
         'organization' => $n['userorganizationid'],
+        'date_created' => date('c', $n['dateline']),
     ];
 
     if ($n['usergroupid'] && isset($userGroups[$n['usergroupid']])) {
@@ -224,11 +226,12 @@ foreach ($pager as $n) {
     }
 
     $ticket = [
-        'subject'    => $n['subject'] ?: 'No subject',
-        'person'     => $person,
-        'agent'      => $writer->agentOid($n['staffid']),
-        'department' => $n['departmenttitle'],
-        'status'     => isset($statusMapping[$n['ticketstatustitle']]) ? $statusMapping[$n['ticketstatustitle']] : 'awaiting_agent',
+        'subject'      => $n['subject'] ?: 'No subject',
+        'person'       => $person,
+        'agent'        => $writer->agentOid($n['staffid']),
+        'department'   => $n['departmenttitle'],
+        'status'       => isset($statusMapping[ $n['ticketstatustitle'] ]) ? $statusMapping[ $n['ticketstatustitle'] ] : 'awaiting_agent',
+        'date_created' => date('c', $n['dateline']),
     ];
 
     // dp doesn't have 'on_hold' status but has is_hold flag
@@ -263,9 +266,10 @@ foreach ($pager as $n) {
         }
 
         $ticket['messages'][] = [
-            'oid'     => 'post_'.$m['ticketpostid'],
-            'person'  => $person,
-            'message' => $m['contents'],
+            'oid'          => 'post_' . $m['ticketpostid'],
+            'person'       => $person,
+            'message'      => $m['contents'],
+            'date_created' => date('c', $n['dateline']),
         ];
     }
 
@@ -283,10 +287,11 @@ foreach ($pager as $n) {
         }
 
         $ticket['messages'][] = [
-            'oid'     => 'note_'.$m['ticketnoteid'],
-            'person'  => $writer->agentOid($m['staffid']),
-            'message' => $m['note'],
-            'is_note' => true,
+            'oid'          => 'note_' . $m['ticketnoteid'],
+            'person'       => $writer->agentOid($m['staffid']),
+            'message'      => $m['note'],
+            'is_note'      => true,
+            'date_created' => date('c', $n['dateline']),
         ];
     }
 
@@ -353,11 +358,12 @@ foreach ($pager as $n) {
     }, $categories);
 
     $article = [
-        'title'      => $n['subject'],
-        'person'     => $writer->agentOid($n['creatorid']),
-        'content'    => '',
-        'status'     => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
-        'categories' => $categories,
+        'title'        => $n['subject'],
+        'person'       => $writer->agentOid($n['creatorid']),
+        'content'      => '',
+        'status'       => isset($statusMapping[ $n['articlestatus'] ]) ? $statusMapping[ $n['articlestatus'] ] : 'published',
+        'categories'   => $categories,
+        'date_created' => date('c', $n['dateline']),
     ];
 
     // get article content
@@ -396,10 +402,11 @@ $statusMapping = [
 $pager = $db->getPager('SELECT * FROM swnewsitems');
 foreach ($pager as $n) {
     $news = [
-        'title'    => $n['subject'],
-        'person'   => $writer->agentOid($n['staffid']),
-        'content'  => '',
-        'status'   => isset($statusMapping[$n['newsstatus']]) ? $statusMapping[$n['newsstatus']] : 'published',
+        'title'        => $n['subject'],
+        'person'       => $writer->agentOid($n['staffid']),
+        'content'      => '',
+        'status'       => isset($statusMapping[ $n['newsstatus'] ]) ? $statusMapping[ $n['newsstatus'] ] : 'published',
+        'date_created' => date('c', $n['dateline']),
     ];
 
     // get news content
