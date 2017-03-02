@@ -250,6 +250,9 @@ foreach ($pager as $n) {
             $m['contents'] = 'empty content';
         }
 
+        // multiline formatting
+        $m['contents'] = str_replace("\n", '<br/>', $m['contents']);
+
         $person = null;
         if ($m['userid']) {
             if (isset($userAgentsMapping[$m['userid']])) {
