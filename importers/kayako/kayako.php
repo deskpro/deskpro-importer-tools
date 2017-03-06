@@ -268,12 +268,51 @@ foreach ($pager as $n) {
             $person = 'imported.message.' . $n['ticketpostid'] . '@example.com';
         }
 
-        $ticket['messages'][] = [
+        $message = [
             'oid'          => 'post_' . $m['ticketpostid'],
             'person'       => $person,
             'message'      => $m['contents'],
             'date_created' => date('c', $n['dateline']),
+            'attachments'  => [],
         ];
+
+        // get message attachments
+        $attachments = $db->findAll('SELECT * FROM swattachments WHERE ticketid = :ticket_id AND linktypeid = :message_id', [
+            'ticket_id'  => $n['ticketid'],
+            'message_id' => $m['ticketpostid'],
+        ]);
+
+        foreach ($attachments as $a) {
+            $attachment = [
+                'oid'          => $a['attachmentid'],
+                'file_name'    => $a['filename'] ?: ('attachment'.$a['attachmentid']),
+                'content_type' => $a['filetype'],
+                'blob_data'    => '',
+            ];
+
+            $attachmentChunks = $db->findAll('SELECT * FROM swattachmentchunks WHERE attachmentid = :attachment_id', [
+                'attachment_id' => $a['attachmentid'],
+            ]);
+
+            foreach ($attachmentChunks as $c) {
+                if ($c['notbase64']) {
+                    $attachment['blob_data'] .= $c['contents'];
+                } else {
+                    // seems that's not used, skip for now
+                }
+            }
+
+            if (!$attachment['blob_data']) {
+                // skip attachments w/o content
+                continue;
+            } else {
+                $attachment['blob_data'] = base64_encode($attachment['blob_data']);
+            }
+
+            $message['attachments'][] = $attachment;
+        }
+
+        $ticket['messages'][] = $message;
     }
 
     // get ticket notes
