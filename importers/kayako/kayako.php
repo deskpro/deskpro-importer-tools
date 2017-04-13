@@ -482,48 +482,50 @@ foreach ($pager as $n) {
 
 $output->startSection('Chats');
 
-$pager = $db->getPager('SELECT * FROM swchatobjects');
-foreach ($pager as $n) {
-    $chat = [
-        'subject'      => $n['subject'],
-        'person'       => $n['userid'] ? $writer->userOid($n['userid']) : $n['useremail'],
-        'agent'        => $writer->agentOid($n['staffid']),
-        'date_created' => date('c', $n['dateline']),
-        'date_ended'   => $n['lastpostactivity'] ? date('c', $n['lastpostactivity']) : date('c', $n['dateline']),
-        'ended_by'     => 'user',
-        'messages'     => [],
-    ];
+if ($db->tableExists('swchatobjects')) {
+    $pager = $db->getPager('SELECT * FROM swchatobjects');
+    foreach ($pager as $n) {
+        $chat = [
+            'subject'      => $n['subject'],
+            'person'       => $n['userid'] ? $writer->userOid($n['userid']) : $n['useremail'],
+            'agent'        => $writer->agentOid($n['staffid']),
+            'date_created' => date('c', $n['dateline']),
+            'date_ended'   => $n['lastpostactivity'] ? date('c', $n['lastpostactivity']) : date('c', $n['dateline']),
+            'ended_by'     => 'user',
+            'messages'     => [],
+        ];
 
-    $participantNameMapping = [
-        $n['userfullname'] => $chat['person'],
-        $n['staffname']    => $chat['agent'],
-    ];
+        $participantNameMapping = [
+            $n['userfullname'] => $chat['person'],
+            $n['staffname']    => $chat['agent'],
+        ];
 
-    $chatData = $db->findOne('SELECT * FROM swchatdata WHERE chatobjectid = :chat_id', [
-        'chat_id' => $n['chatobjectid'],
-    ]);
+        $chatData = $db->findOne('SELECT * FROM swchatdata WHERE chatobjectid = :chat_id', [
+            'chat_id' => $n['chatobjectid'],
+        ]);
 
-    $chatMessages = unserialize($chatData['contents']);
-    foreach ($chatMessages as $messageId => $m) {
-        if ($m['actiontype'] !== 'message') {
+        $chatMessages = unserialize($chatData['contents']);
+        foreach ($chatMessages as $messageId => $m) {
+            if ($m['actiontype'] !== 'message') {
+                continue;
+            }
+
+            $chat['messages'][] = [
+                'oid'          => $n['chatobjectid'] . '.' . $messageId,
+                'person'       => isset($participantNameMapping[ $m['name'] ]) ? $participantNameMapping[ $m['name'] ] : null,
+                'content'      => $m['base64'] ? base64_decode($m['message']) : $m['message'],
+                'date_created' => date('c', $n['dateline']),
+            ];
+        }
+
+        // skip empty chats
+        // don't save chat if no messages
+        if (!$chat['messages']) {
             continue;
         }
 
-        $chat['messages'][] = [
-            'oid'          => $n['chatobjectid'] . '.' . $messageId,
-            'person'       => isset($participantNameMapping[$m['name']]) ? $participantNameMapping[$m['name']] : null,
-            'content'      => $m['base64'] ? base64_decode($m['message']) : $m['message'],
-            'date_created' => date('c', $n['dateline']),
-        ];
+        $writer->writeChat($n['chatobjectid'], $chat);
     }
-
-    // skip empty chats
-    // don't save chat if no messages
-    if (!$chat['messages']) {
-        continue;
-    }
-
-    $writer->writeChat($n['chatobjectid'], $chat);
 }
 
 //--------------------

@@ -88,6 +88,16 @@ class DbHelper
     }
 
     /**
+     * @param string $tableName
+     *
+     * @return bool
+     */
+    public function tableExists($tableName)
+    {
+        return $this->connection->getSchemaManager()->tablesExist([$tableName]);
+    }
+
+    /**
      * @param string $query
      * @param array  $params
      * @param int    $perPage
