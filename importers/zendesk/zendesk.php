@@ -161,7 +161,7 @@ $statusMapping = [
 $pager = $reader->getTicketPager(new \DateTime($CONFIG['start_time']));
 foreach ($pager as $n) {
     $ticket = [
-        'subject'      => $n['subject'],
+        'subject'      => $n['subject'] ?: 'No Subject',
         'status'       => $statusMapping[$n['status']],
         'person'       => $n['requester_id'],
         'agent'        => $n['assignee_id'],
