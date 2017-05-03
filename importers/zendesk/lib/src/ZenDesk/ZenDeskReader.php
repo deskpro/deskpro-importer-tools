@@ -144,7 +144,7 @@ class ZenDeskReader
     {
         $result = $this->adapter->doRequest(new Request(CoreAPI\Organization::class, 'findAll'));
 
-        return $this->toArray($result->organizations);
+        return $result ? $this->toArray($result->organizations) : [];
     }
 
     /**
