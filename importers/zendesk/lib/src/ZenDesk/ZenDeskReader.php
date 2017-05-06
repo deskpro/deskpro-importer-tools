@@ -32,7 +32,6 @@ use DeskPRO\ImporterTools\Importers\ZenDesk\Request\ClientHelper\CoreAPI;
 use DeskPRO\ImporterTools\Importers\ZenDesk\Request\ClientHelper\HelpCenter;
 use DeskPRO\ImporterTools\Importers\ZenDesk\Request\Request;
 use DeskPRO\ImporterTools\Importers\ZenDesk\Request\RequestAdapterInterface;
-use DeskPRO\ImporterTools\Importers\ZenDesk\Request\RequestCacheAdapter;
 use DeskPRO\ImporterTools\Importers\ZenDesk\Request\RequestClientAdapter;
 use DeskPRO\ImporterTools\Importers\ZenDesk\Request\RetryAfterException;
 use Zendesk\API\HttpClient;
@@ -82,10 +81,9 @@ class ZenDeskReader
         /** @var mixed $DP_CONTAINER */
         global $DP_CONTAINER;
 
-        $adapter      = new RequestClientAdapter($httpClient, $DP_CONTAINER->get('dp.importer_logger'));
-        $cacheAdapter = new RequestCacheAdapter($adapter);
+        $adapter = new RequestClientAdapter($httpClient, $DP_CONTAINER->get('dp.importer_logger'));
 
-        return new ZenDeskReader($cacheAdapter);
+        return new ZenDeskReader($adapter);
     }
 
     /**
