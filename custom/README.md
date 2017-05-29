@@ -64,7 +64,7 @@ For more examples you can see the existing importer scripts:
 
 ### Classes autoload and using third-party libs
 
-Basically the importer script is a self-contained file with a simple data mapping. It connects to the external database, fetches the data and creates the json files.
+Basically the importer script is a self-contained file with a simple data mapping. It connects to an external database, fetches data and creates json files.
 But sometimes it's pretty hard to write a simple script in a single file or needs to use composer to install third-party components.
 
 Use `importers/mytool/lib` directory for your classes and vendors. See the ZenDesk importer [files structure](../importers/zendesk/lib).
