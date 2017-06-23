@@ -154,7 +154,7 @@ $statusMapping = [
     'pending' => 'awaiting_user',
     'hold'    => 'awaiting_agent',
     'solved'  => 'resolved',
-    'closed'  => 'archived',
+    'closed'  => 'resolved',
     'deleted' => 'hidden.deleted',
 ];
 
