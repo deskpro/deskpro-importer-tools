@@ -114,9 +114,9 @@ foreach ($pager as $n) {
         'organization' => $n['organization_id'],
     ];
 
-    try {
+    if (isset(ZenDeskMapper::$timezoneMapping[$n['time_zone']])) {
         $person['timezone'] = ZenDeskMapper::$timezoneMapping[$n['time_zone']];
-    } catch (\RuntimeException $e) {
+    } else {
         $person['timezone'] = 'UTC';
         $output->warning("Found unknown timezone `{$n['time_zone']}`");
     }
