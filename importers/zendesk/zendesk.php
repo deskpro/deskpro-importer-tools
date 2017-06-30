@@ -287,7 +287,7 @@ foreach ($pager as $n) {
 
     // translations
     foreach ($reader->getArticleTranslations($n['id']) as $t) {
-        $language = ZenDeskMapper::getLanguageByLocale([$n['locale']]);
+        $language = ZenDeskMapper::getLanguageByLocale([$t['locale']]);
         if (!$language) {
             continue;
         }
