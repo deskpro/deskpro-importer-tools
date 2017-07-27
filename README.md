@@ -8,7 +8,7 @@ The DeskPRO team has put a lot of effort into helping you migrate your data into
 
 If you ONLY want to import users/organizations, then you can use the simplified user importer tool that is built in to DeskPRO. This works on both On-Premise and Cloud deployments of DeskPRO.
 
-[DeskPRO Manual : CSV User Import](https://manuals.deskpro.com/html/admin/importing-data/csv-user-import.html)
+[DeskPRO Manual : CSV User Import](https://support.deskpro.com/en_GB/guides/admin-guide/importing-data/csv-user-import)
 
 Note that this is only useful for users/organizations. If you want to import other data, you will need to use one of the other two options described below.
 
