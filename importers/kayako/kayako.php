@@ -265,14 +265,14 @@ foreach ($pager as $n) {
         } elseif ($m['email']) {
             $person = $m['email'];
         } else {
-            $person = 'imported.message.' . $n['ticketpostid'] . '@example.com';
+            $person = 'imported.message.' . $m['ticketpostid'] . '@example.com';
         }
 
         $message = [
             'oid'          => 'post_' . $m['ticketpostid'],
             'person'       => $person,
             'message'      => $m['contents'],
-            'date_created' => date('c', $n['dateline']),
+            'date_created' => date('c', $m['dateline']),
             'attachments'  => [],
         ];
 
@@ -333,7 +333,7 @@ foreach ($pager as $n) {
             'person'       => $writer->agentOid($m['staffid']),
             'message'      => $m['note'],
             'is_note'      => true,
-            'date_created' => date('c', $n['dateline']),
+            'date_created' => date('c', $m['dateline']),
         ];
     }
 
