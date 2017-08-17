@@ -75,7 +75,7 @@ If you are not going to build own import tool based on `custom.php` and just wan
 
 ```
   example_data
-       |--1 (e.g. batch num)
+       |--1 (i.e. batch num)
            |--ticket
                  |--ticket1.json
                  |--ticket2.json
