@@ -217,6 +217,25 @@ $statusMapping = [
     'Closed'        => 'resolved',
 ];
 
+// prepare a map of ticket departments
+$ticketDepartmentMapping    = [];
+$getTicketDepartments = function ($parentId, $parentTitle = '') use ($db, &$ticketDepartmentMapping, &$getTicketDepartments) {
+    $pager = $db->findAll('SELECT * FROM swdepartments WHERE parentdepartmentid = :parent_id', [
+        'parent_id' => $parentId,
+    ]);
+
+    foreach ($pager as $n) {
+        $id    = $n['departmentid'];
+        $title = $parentTitle.$n['title'];
+
+        $ticketDepartmentMapping[$id] = $title;
+        $getTicketDepartments($id, $title.' > ');
+    }
+};
+
+$getTicketDepartments(0);
+
+// get tickets
 $pager = $db->getPager('SELECT * FROM swtickets');
 foreach ($pager as $n) {
     if (isset($userAgentsMapping[$n['userid']])) {
@@ -229,8 +248,8 @@ foreach ($pager as $n) {
         'subject'      => $n['subject'] ?: 'No subject',
         'person'       => $person,
         'agent'        => $writer->agentOid($n['staffid']),
-        'department'   => $n['departmenttitle'],
-        'status'       => isset($statusMapping[ $n['ticketstatustitle'] ]) ? $statusMapping[ $n['ticketstatustitle'] ] : 'awaiting_agent',
+        'department'   => isset($ticketDepartmentMapping[$n['departmentid']]) ? $ticketDepartmentMapping[$n['departmentid']] : $n['departmenttitle'],
+        'status'       => isset($statusMapping[$n['ticketstatustitle']]) ? $statusMapping[$n['ticketstatustitle']] : 'awaiting_agent',
         'date_created' => date('c', $n['dateline']),
     ];
 
