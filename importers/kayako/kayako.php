@@ -245,6 +245,7 @@ foreach ($pager as $n) {
     }
 
     $ticket = [
+        'ref'          => $n['ticketmaskid'],
         'subject'      => $n['subject'] ?: 'No subject',
         'person'       => $person,
         'agent'        => $writer->agentOid($n['staffid']),
