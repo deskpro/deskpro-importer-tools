@@ -89,6 +89,7 @@ class RequestClientAdapter implements RequestAdapterInterface
      * @param int     $retry_attempt
      *
      * @throws RetryAfterException
+     * @throws \Exception
      *
      * @return \stdClass
      */
@@ -115,7 +116,11 @@ class RequestClientAdapter implements RequestAdapterInterface
                 if ($error instanceof BadResponseException) {
                     $errorCode = $error->getCode();
                 } else {
-                    $errorCode = $debug->lastResponseError;
+                    if ($debug->lastResponseError instanceof \Exception) {
+                        throw $debug->lastResponseError;
+                    } else {
+                        throw $e;
+                    }
                 }
 
                 switch ($errorCode) {

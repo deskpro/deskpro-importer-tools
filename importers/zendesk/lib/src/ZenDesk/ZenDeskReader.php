@@ -75,7 +75,7 @@ class ZenDeskReader
      */
     public static function createReader(array $params)
     {
-        $httpClient = new HttpClient(@$params['subdomain']);
+        $httpClient = new HttpClient(@$params['subdomain'], '', 'https', 'zendesk.com', 443, new \GuzzleHttp\Client(['verify' => false]));
         $httpClient->setAuth(@$params['auth_type'], $params);
 
         /** @var mixed $DP_CONTAINER */
