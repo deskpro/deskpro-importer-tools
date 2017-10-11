@@ -4,3 +4,4 @@ data/*
 !data/.gitkeep
 .idea
 /custom-*.php
+config.php

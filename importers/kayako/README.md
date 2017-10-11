@@ -22,6 +22,7 @@ After this tool completes, you will run the standard DeskPRO import process to s
 * Download https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip
 * Unzip `deskpro-importer-tools-master.zip`
 * Move `deskpro-importer-tools-master` into DeskPRO's `/bin/` directory
+* Rename the config file from `/path/to/deskpro/bin/deskpro-importer-tools-master/importers/kayako/config.dist.php` to `/path/to/deskpro/bin/deskpro-importer-tools-master/importers/kayako/config.php`
 * Edit the config values in the `/path/to/deskpro/bin/deskpro-importer-tools-master/importers/kayako/config.php`
 
 **Import Data**
