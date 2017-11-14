@@ -1,11 +1,11 @@
 <?php
 
-$CONFIG = [];
+$DP_CONFIG = [];
 
 /**
  * Enter the full path to your SpiceWorks SQLite database file.
  */
-$CONFIG['db_path'] = '/path/to/spiceworks.db';
+$DP_CONFIG['db_path'] = '/path/to/spiceworks.db';
 
 /**
  * Enter the full path to your SpiceWorks ticket attachments directory.
@@ -15,4 +15,4 @@ $CONFIG['db_path'] = '/path/to/spiceworks.db';
  * a ticket ID, and inside each directory will be the file attachments
  * on the ticket.
  */
-$CONFIG['ticket_attachments_path'] = '/path/to/spiceworks/data/uploads/Ticket';
+$DP_CONFIG['ticket_attachments_path'] = '/path/to/spiceworks/data/uploads/Ticket';

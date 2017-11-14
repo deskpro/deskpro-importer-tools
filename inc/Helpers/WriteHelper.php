@@ -28,15 +28,13 @@
 
 namespace DeskPRO\ImporterTools\Helpers;
 
-use Application\ImportBundle\Model;
-use DeskPRO\Bundle\AppBundle\Form\Error\ValidatorErrorsGenerator;
+use DeskPRO\Bundle\ImportBundle\Event\ProgressEvent;
+use DeskPRO\Bundle\ImportBundle\Model;
+use DeskPRO\Bundle\ImportBundle\Storage\Storage;
+use DeskPRO\Bundle\ImportBundle\Writer\EntityHandler\EntityHandlerRegistry;
 use JMS\Serializer\Serializer;
-use Orb\Util\Strings;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Filesystem\Exception\IOException;
-use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\Finder\Finder;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class ScriptHelper.
@@ -49,29 +47,29 @@ class WriteHelper
     private $serializer;
 
     /**
+     * @var Storage
+     */
+    private $storage;
+
+    /**
+     * @var EventDispatcherInterface
+     */
+    private $eventDispatcher;
+
+    /**
+     * @var EntityHandlerRegistry
+     */
+    private $entityHandlerRegistry;
+
+    /**
      * @var LoggerInterface
      */
     private $logger;
 
     /**
-     * @var ValidatorInterface
+     * @var array
      */
-    private $validator;
-
-    /**
-     * @var ValidatorErrorsGenerator
-     */
-    private $errorsGenerator;
-
-    /**
-     * @var string
-     */
-    private $path;
-
-    /**
-     * @var int
-     */
-    private $page = 1;
+    private $initialPages = [];
 
     /**
      * @var array
@@ -94,40 +92,26 @@ class WriteHelper
     private $oidPrefix;
 
     /**
-     * @return WriteHelper
-     */
-    public static function getHelper()
-    {
-        /** @var mixed $DP_CONTAINER */
-        global $DP_CONTAINER;
-
-        static $helper;
-        if (null === $helper) {
-            $helper = new self(
-                $DP_CONTAINER->get('serializer'),
-                $DP_CONTAINER->get('validator'),
-                $DP_CONTAINER->get('form_error.validator_errors_generator.api'),
-                $DP_CONTAINER->get('dp.importer_logger')
-            );
-        }
-
-        return $helper;
-    }
-
-    /**
      * Constructor.
      *
      * @param Serializer               $serializer
-     * @param ValidatorInterface       $validator
-     * @param ValidatorErrorsGenerator $errorsGenerator
+     * @param Storage                  $storage
+     * @param EventDispatcherInterface $eventDispatcher
+     * @param EntityHandlerRegistry    $entityHandlerRegistry
      * @param LoggerInterface          $logger
      */
-    public function __construct(Serializer $serializer, ValidatorInterface $validator, ValidatorErrorsGenerator $errorsGenerator, LoggerInterface $logger)
-    {
-        $this->serializer      = $serializer;
-        $this->validator       = $validator;
-        $this->errorsGenerator = $errorsGenerator;
-        $this->logger          = $logger;
+    public function __construct(
+        Serializer               $serializer,
+        Storage                  $storage,
+        EventDispatcherInterface $eventDispatcher,
+        EntityHandlerRegistry    $entityHandlerRegistry,
+        LoggerInterface          $logger
+    ) {
+        $this->serializer            = $serializer;
+        $this->storage               = $storage;
+        $this->eventDispatcher       = $eventDispatcher;
+        $this->entityHandlerRegistry = $entityHandlerRegistry;
+        $this->logger                = $logger;
     }
 
     /**
@@ -140,46 +124,6 @@ class WriteHelper
         $this->oidPrefix = $oidPrefix;
 
         return $this;
-    }
-
-    /**
-     * @param string $path
-     *
-     * @throws \Symfony\Component\Filesystem\Exception\IOException
-     */
-    public function setOutputPath($path)
-    {
-        if (file_exists($path)) {
-            if (!is_dir($path)) {
-                throw new IOException("Output path '$path' is not a directory");
-            }
-            if (!is_readable($path) || !is_writable($path)) {
-                throw new IOException("Unable to access $path");
-            }
-        } else {
-            $fs = new Filesystem();
-            $fs->mkdir($path);
-        }
-
-        $this->path = $path;
-
-        // calc the current page
-        $finder = new Finder();
-        $finder
-            ->in($this->path)
-            ->directories()
-            ->sort(function (\SplFileInfo $a, \SplFileInfo $b) {
-                return (int) $b->getFilename() - (int) $a->getFilename();
-            })
-        ;
-
-        /** @var \SplFileInfo $dir */
-        $dir = $finder->getIterator()->current();
-        if ($dir) {
-            $this->page = (int) $dir->getFilename() + 1;
-        } else {
-            $this->page = 1;
-        }
     }
 
     /**
@@ -442,20 +386,22 @@ class WriteHelper
     /**
      * @param int    $oid
      * @param array  $rawData
-     * @param string $modelClassName
+     * @param string $modelClass
      *
      * @throws \Exception
      */
-    protected function writeModel($oid, array $rawData, $modelClassName)
+    protected function writeModel($oid, array $rawData, $modelClass)
     {
-        $modelType = $this->getModelType($modelClassName);
-
         $this->lastModel = null;
+        $modelType       = $this->entityHandlerRegistry->getTypeByModelClass($modelClass);
+
         $this->logger->debug("Export $modelType #$oid");
 
         try {
+            $this->eventDispatcher->dispatch(ProgressEvent::PRE_MODEL_IMPORT, new ProgressEvent($modelClass));
+
             // transform to model
-            $model = $this->serializer->fromArray($rawData, $modelClassName);
+            $model = $this->serializer->fromArray($rawData, $modelClass);
             $model->setOid($oid);
             $model->setRawData($rawData);
             if ($this->oidPrefix) {
@@ -463,44 +409,21 @@ class WriteHelper
             }
 
             $this->lastModel = $model;
-
-            // validate model
-            $errors = $this->validator->validate($model);
-            if (count($errors)) {
-                $encodedErrors = $this->serializer->serialize($this->errorsGenerator->generateValidatorErrors($errors), 'json');
-                throw new \RuntimeException("$modelType #$oid validation is failed:\n$encodedErrors");
-            }
-
-            $filePath = $this->getModelPath($model);
-
-            try {
-                $encoded = $this->serializer->serialize($model, 'json');
-            } catch (\Exception $e) {
-                $encoded = null;
-            }
-
-            if (!$encoded) {
-                $this->logger->warning('Unable to encode model:');
-                var_dump($rawData);
-
-                return;
-            }
-
-            if (!file_put_contents($filePath, $encoded)) {
-                throw new \RuntimeException("Unable to write to '$filePath'");
-            }
+            $this->storage->writeModel($model, $this->getBatchId($model));
 
             // if it's new item then update batch cursor position and batch mapping, otherwise just skip it
-            if (!isset($this->batchMapping[$modelClassName][$oid])) {
-                $this->batchMapping[$modelClassName][$oid] = $this->getBatchNum($model);
+            if (!isset($this->batchMapping[$modelClass][$oid])) {
+                $this->batchMapping[$modelClass][$oid] = $this->getBatchId($model);
 
                 // remember num count to calc destination path properly
-                if (!isset($this->writtenCounts[$modelClassName])) {
-                    $this->writtenCounts[$modelClassName] = 0;
+                if (!isset($this->writtenCounts[$modelClass])) {
+                    $this->writtenCounts[$modelClass] = 0;
                 }
 
-                $this->writtenCounts[$modelClassName]++;
+                $this->writtenCounts[$modelClass]++;
             }
+
+            $this->eventDispatcher->dispatch(ProgressEvent::POST_MODEL_IMPORT, new ProgressEvent($modelClass));
         } catch (\Exception $e) {
             $this->logger->error("Unable to write model: {$e->getMessage()}");
             $this->logger->error('Raw data:');
@@ -509,32 +432,25 @@ class WriteHelper
     }
 
     /**
-     * @param int    $id
-     * @param string $modelClassName
+     * @param int    $oid
+     * @param string $modelClass
      *
      * @throws \Exception
      *
      * @return array
      */
-    protected function getModelData($id, $modelClassName)
+    protected function getModelData($oid, $modelClass)
     {
         try {
-            if (!isset($this->batchMapping[$modelClassName][$id])) {
+            if (!isset($this->batchMapping[$modelClass][$oid])) {
                 return;
             }
 
-            $entityPath = $this->getModelType($modelClassName);
-            $batchNum   = $this->batchMapping[$modelClassName][$id];
-            $basePath   = sprintf('%s/%d/%s', $this->path, $batchNum, $entityPath);
-            $filePath   = $basePath."/$id.json";
+            $batchId = $this->batchMapping[$modelClass][$oid];
 
-            if (!file_exists($filePath)) {
-                return;
-            }
-
-            return json_decode(file_get_contents($filePath), true);
+            return json_decode($this->storage->readModel($modelClass, $batchId, $oid), true);
         } catch (\Exception $e) {
-            $this->logger->error("Unable to restore $modelClassName #$id model: {$e->getMessage()}");
+            $this->logger->error("Unable to restore $modelClass #$oid model: {$e->getMessage()}");
 
             throw $e;
         }
@@ -543,54 +459,22 @@ class WriteHelper
     /**
      * @param Model\PrimaryImportModelInterface $model
      *
-     * @throws \Exception
-     *
-     * @return string
-     */
-    protected function getModelPath(Model\PrimaryImportModelInterface $model)
-    {
-        if (!$this->path) {
-            throw new \Exception('Output path is not defined');
-        }
-
-        if (!isset($this->writtenCounts[get_class($model)])) {
-            $this->writtenCounts[get_class($model)] = 0;
-        }
-
-        $currentBatchNum = $this->getBatchNum($model);
-        $entityPath      = $this->getModelType($model);
-        $batchModelPath  = sprintf('%s/%d/%s', $this->path, $currentBatchNum, $entityPath);
-
-        $fs = new Filesystem();
-        $fs->mkdir($batchModelPath);
-
-        return "$batchModelPath/{$model->getOid()}.json";
-    }
-
-    /**
-     * @param Model\PrimaryImportModelInterface $model
-     *
      * @return int
      */
-    protected function getBatchNum(Model\PrimaryImportModelInterface $model)
+    protected function getBatchId(Model\PrimaryImportModelInterface $model)
     {
-        if (isset($this->batchMapping[get_class($model)][$model->getOid()])) {
-            return $this->batchMapping[get_class($model)][$model->getOid()];
+        $modelClass = get_class($model);
+        if (isset($this->batchMapping[$modelClass][$model->getOid()])) {
+            return $this->batchMapping[$modelClass][$model->getOid()];
+        }
+        if (!isset($this->initialPages[$modelClass])) {
+            $this->initialPages[$modelClass] = $this->storage->getNextBatchId($modelClass);
         }
 
-        return $this->page + (int) ($this->writtenCounts[get_class($model)] / 100);
-    }
+        if (!isset($this->writtenCounts[$modelClass])) {
+            $this->writtenCounts[$modelClass] = 0;
+        }
 
-    /**
-     * @param mixed $model
-     *
-     * @return string
-     */
-    protected function getModelType($model)
-    {
-        $modelType = (new \ReflectionClass($model))->getShortName();
-        $modelType = Strings::camelCaseToUnderscore($modelType);
-
-        return $modelType;
+        return $this->initialPages[$modelClass] + (int) ($this->writtenCounts[$modelClass] / 100);
     }
 }

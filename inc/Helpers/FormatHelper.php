@@ -31,6 +31,7 @@ namespace DeskPRO\ImporterTools\Helpers;
 use libphonenumber\PhoneNumberFormat;
 use libphonenumber\PhoneNumberUtil;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -279,22 +280,6 @@ class FormatHelper
         '260'   => 'Zambia',
         '263'   => 'Zimbabwe',
     ];
-
-    /**
-     * @return FormatHelper
-     */
-    public static function getHelper()
-    {
-        /** @var mixed $DP_CONTAINER */
-        global $DP_CONTAINER;
-
-        static $helper;
-        if (null === $helper) {
-            $helper = new self($DP_CONTAINER->get('validator'), $DP_CONTAINER->get('dp.importer_logger'));
-        }
-
-        return $helper;
-    }
 
     /**
      * Constructor.

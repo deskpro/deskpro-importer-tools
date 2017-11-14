@@ -17,15 +17,12 @@ After this tool completes, you will run the standard DeskPRO import process to s
 * Knowledgebase (Categories & Articles)
 * News
 
-**Setup**
+**Via Command Line**
 
-* Download https://github.com/DeskPRO/deskpro-importer-tools/archive/master.zip
-* Unzip `deskpro-importer-tools-master.zip`
-* Move `deskpro-importer-tools-master` into DeskPRO's `/bin/` directory
-* Rename the config file from `/path/to/deskpro/bin/deskpro-importer-tools-master/importers/kayako/config.dist.php` to `/path/to/deskpro/bin/deskpro-importer-tools-master/importers/kayako/config.php`
-* Edit the config values in the `/path/to/deskpro/bin/deskpro-importer-tools-master/importers/kayako/config.php`
+Prepare your importer config:
 
-**Import Data**
+* Rename the config file from `/path/to/deskpro/config/importer/kayako.dist.php` to `/path/to/deskpro/config/importer/kayako.php`
+* Edit the config values in the `/path/to/deskpro/config/importer/kayako.php`
 
 Run the import process to fetch all of your data from Kayako:
 
@@ -43,3 +40,9 @@ When you're ready, go ahead and apply the import to your live database:
 And finally, you can clean up the temporary data files from the filesystem:
 
     $ php bin/import clean
+
+**Via Admin Interface**
+
+* Navigate `Admin > Apps > Importer` in the Admin Interface.
+* Select importer type `Kayako`.
+* Fill the config form and start the import process.

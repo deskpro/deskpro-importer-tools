@@ -43,19 +43,6 @@ class AttachmentHelper
     private $client;
 
     /**
-     * @return AttachmentHelper
-     */
-    public static function getHelper()
-    {
-        static $helper;
-        if (null === $helper) {
-            $helper = new self();
-        }
-
-        return $helper;
-    }
-
-    /**
      * Constructor.
      */
     public function __construct()

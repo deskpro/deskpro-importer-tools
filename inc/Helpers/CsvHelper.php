@@ -27,6 +27,7 @@
  */
 
 namespace DeskPRO\ImporterTools\Helpers;
+
 use Psr\Log\LoggerInterface;
 
 /**
@@ -38,22 +39,6 @@ class CsvHelper
      * @var LoggerInterface
      */
     private $logger;
-
-    /**
-     * @return CsvHelper
-     */
-    public static function getHelper()
-    {
-        /** @var mixed $DP_CONTAINER */
-        global $DP_CONTAINER;
-
-        static $helper;
-        if (null === $helper) {
-            $helper = new self($DP_CONTAINER->get('dp.importer_logger'));
-        }
-
-        return $helper;
-    }
 
     /**
      * Constructor.

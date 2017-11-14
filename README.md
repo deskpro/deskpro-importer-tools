@@ -16,18 +16,18 @@ Note that this is only useful for users/organizations. If you want to import oth
 
 We currently provide importers for the following products. Please follow the instructions for the product you wish to import your data from.
 
- 1. [Importing my data from Kayako into DeskPRO](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/importers/kayako/README.md)
- 2. [Importing my data from Zendesk into DeskPRO](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/importers/zendesk/README.md)
- 3. [Importing my data from Spiceworks into DeskPRO](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/importers/spiceworks/README.md)
- 4. [Importing my data from OsTicket into DeskPRO](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/importers/osticket/README.md)
+ 1. [Importing my data from Kayako into DeskPRO](./importers/kayako/README.md)
+ 2. [Importing my data from Zendesk into DeskPRO](./importers/zendesk/README.md)
+ 3. [Importing my data from Spiceworks into DeskPRO](./importers/spiceworks/README.md)
+ 4. [Importing my data from OsTicket into DeskPRO](./importers/osticket/README.md)
  
 ### 3. I'm using a different product / I need to import custom data
 
-The DeskPRO importer is a platform that helps simplify writing your own importer. The [Custom Importer Instructions](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/custom/README.md) will guide you to building your own tool.
+The DeskPRO importer is a platform that helps simplify writing your own importer. The [Custom Importer Instructions](./importers/custom/README.md) will guide you to building your own tool.
 
 **What's invovled?**
 
-Your custom tool must take the data you have and convert it into a series of JSON files on the filesystem so that DeskPRO can import it. Our importer platform makes this easy. You can write your own tool in just a few dozen lines of code. Refer to the [Custom Importer Instructions](https://github.com/DeskPRO/deskpro-importer-tools/blob/master/custom/README.md) for examples and details.
+Your custom tool must take the data you have and convert it into a series of JSON files on the filesystem so that DeskPRO can import it. Our importer platform makes this easy. You can write your own tool in just a few dozen lines of code. Refer to the [Custom Importer Instructions](./importers/custom/README.md) for examples and details.
 
 **Have us write your importer**
 
