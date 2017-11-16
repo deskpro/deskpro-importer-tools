@@ -367,6 +367,7 @@ class FormatHelper
             return '';
         }
 
+        $url = trim($url);
         if (strpos($url, 'http://') !== 0 && strpos($url, 'https://') !== 0) {
             $url = 'http://'.$url;
         }
