@@ -86,7 +86,13 @@ class CsvHelper
 
         while (($row = fgetcsv($fp, null, $delimeter, $enclosure)) !== false) {
             if (!$header) {
-                $header = $row;
+                $header = [];
+                foreach ($row as $key => $value) {
+                    $value = trim($value);
+                    $value = preg_replace('/[^\w\d\s_-]/', '', $value);
+
+                    $header[$key] = $value;
+                }
             } else {
                 $item = [];
                 foreach ($row as $key => $value) {
