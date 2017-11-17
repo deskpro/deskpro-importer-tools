@@ -84,6 +84,11 @@ class WriteHelper
     private $lastModel;
 
     /**
+     * @var array
+     */
+    private $batchMapping;
+
+    /**
      * @return WriteHelper
      */
     public static function getHelper()
@@ -363,6 +368,16 @@ class WriteHelper
         $this->writeModel($oid, $data, Model\Setting::class);
     }
 
+    /**
+     * @param int|string $oid
+     *
+     * @return array
+     */
+    public function getTicket($oid)
+    {
+        return $this->getModelData($oid, Model\Ticket::class);
+    }
+
     public function printLastModel()
     {
         $this->logger->debug($this->serializer->serialize($this->lastModel, 'json'));
@@ -425,6 +440,8 @@ class WriteHelper
                 throw new \RuntimeException("Unable to write to '$filePath'");
             }
 
+            $this->batchMapping[$modelClassName][$oid] = $this->getBatchNum($model);
+
             // remember num count to calc destination path properly
             if (!isset($this->writtenCounts[$modelClassName])) {
                 $this->writtenCounts[$modelClassName] = 0;
@@ -436,6 +453,40 @@ class WriteHelper
             $this->logger->error("Unable to write model: {$e->getMessage()}");
             $this->logger->error('Raw data:');
             $this->logger->error(json_encode($rawData));
+
+            throw $e;
+        }
+    }
+
+    /**
+     * @param int    $id
+     * @param string $modelClassName
+     *
+     * @throws \Exception
+     *
+     * @return string
+     */
+    protected function getModelData($id, $modelClassName)
+    {
+        try {
+            if (!isset($this->batchMapping[$modelClassName][$id])) {
+                return;
+            }
+
+            $entityPath = $this->getModelType($modelClassName);
+            $batchNum   = $this->batchMapping[$modelClassName][$id];
+            $basePath   = sprintf('%s/%d/%s', $this->path, $batchNum, $entityPath);
+            $filePath   = $basePath."/$id.json";
+
+            if (!file_exists($filePath)) {
+                return;
+            }
+
+            $model = $this->serializer->deserialize(file_get_contents($filePath), $modelClassName, 'json');
+
+            return $this->serializer->toArray($model);
+        } catch (\Exception $e) {
+            $this->logger->error("Unable to restore $modelClassName #$id model: {$e->getMessage()}");
 
             throw $e;
         }
@@ -458,7 +509,7 @@ class WriteHelper
             $this->writtenCounts[get_class($model)] = 0;
         }
 
-        $currentBatchNum = $this->page + (int) ($this->writtenCounts[get_class($model)] / 100);
+        $currentBatchNum = $this->getBatchNum($model);
         $entityPath      = $this->getModelType($model);
         $batchModelPath  = sprintf('%s/%d/%s', $this->path, $currentBatchNum, $entityPath);
 
@@ -466,6 +517,20 @@ class WriteHelper
         $fs->mkdir($batchModelPath);
 
         return "$batchModelPath/{$model->getOid()}.json";
+    }
+
+    /**
+     * @param Model\PrimaryImportModelInterface $model
+     *
+     * @return int
+     */
+    protected function getBatchNum(Model\PrimaryImportModelInterface $model)
+    {
+        if (isset($this->batchMapping[get_class($model)][$model->getOid()])) {
+            return $this->batchMapping[get_class($model)][$model->getOid()];
+        }
+
+        return $this->page + (int) ($this->writtenCounts[get_class($model)] / 100);
     }
 
     /**
