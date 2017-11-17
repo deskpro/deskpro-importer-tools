@@ -319,8 +319,13 @@ class FormatHelper
             return '';
         }
 
+        $number = trim($number);
         $number = preg_replace('#[^0-9]#', '', $number);
         $number = preg_replace('#^0+#', '', $number);
+
+        if (!$number) {
+            return '';
+        }
 
         $numberUtil   = PhoneNumberUtil::getInstance();
         $parsedNumber = null;
