@@ -464,7 +464,7 @@ class WriteHelper
      *
      * @throws \Exception
      *
-     * @return string
+     * @return array
      */
     protected function getModelData($id, $modelClassName)
     {
@@ -482,9 +482,7 @@ class WriteHelper
                 return;
             }
 
-            $model = $this->serializer->deserialize(file_get_contents($filePath), $modelClassName, 'json');
-
-            return $this->serializer->toArray($model);
+            return json_decode(file_get_contents($filePath));
         } catch (\Exception $e) {
             $this->logger->error("Unable to restore $modelClassName #$id model: {$e->getMessage()}");
 
