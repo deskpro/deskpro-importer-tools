@@ -470,15 +470,17 @@ class WriteHelper
                 throw new \RuntimeException("Unable to write to '$filePath'");
             }
 
-            $this->batchMapping[$modelClassName][$oid] = $this->getBatchNum($model);
+            // if it's new item then update batch cursor position and batch mapping, otherwise just skip it
+            if (!isset($this->batchMapping[$modelClassName][$oid])) {
+                $this->batchMapping[$modelClassName][$oid] = $this->getBatchNum($model);
 
-            // remember num count to calc destination path properly
-            if (!isset($this->writtenCounts[$modelClassName])) {
-                $this->writtenCounts[$modelClassName] = 0;
+                // remember num count to calc destination path properly
+                if (!isset($this->writtenCounts[$modelClassName])) {
+                    $this->writtenCounts[$modelClassName] = 0;
+                }
+
+                $this->writtenCounts[$modelClassName]++;
             }
-
-            $this->writtenCounts[$modelClassName]++;
-
         } catch (\Exception $e) {
             $this->logger->error("Unable to write model: {$e->getMessage()}");
             $this->logger->error('Raw data:');
