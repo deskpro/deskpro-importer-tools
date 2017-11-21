@@ -378,6 +378,36 @@ class WriteHelper
         return $this->getModelData($oid, Model\Ticket::class);
     }
 
+    /**
+     * @param int|string $oid
+     * @param bool       $oidWithPrefix
+     *
+     * @return string
+     */
+    public function getUser($oid, $oidWithPrefix = true)
+    {
+        if ($oidWithPrefix) {
+            $oid = $this->userOid($oid);
+        }
+
+        return $this->getModelData($oid, Model\Person::class);
+    }
+
+    /**
+     * @param int|string $oid
+     * @param bool       $oidWithPrefix
+     *
+     * @return string
+     */
+    public function getAgent($oid, $oidWithPrefix = true)
+    {
+        if ($oidWithPrefix) {
+            $oid = $this->agentOid($oid);
+        }
+
+        return $this->getModelData($oid, Model\Person::class);
+    }
+
     public function printLastModel()
     {
         $this->logger->debug($this->serializer->serialize($this->lastModel, 'json'));
@@ -482,7 +512,7 @@ class WriteHelper
                 return;
             }
 
-            return json_decode(file_get_contents($filePath));
+            return json_decode(file_get_contents($filePath), true);
         } catch (\Exception $e) {
             $this->logger->error("Unable to restore $modelClassName #$id model: {$e->getMessage()}");
 
