@@ -8,4 +8,5 @@ $CONFIG['account'] = [
     'auth_type' => 'basic',
 ];
 
-$CONFIG['start_time'] = '-5 years';
+$CONFIG['start_time']         = '-5 years';
+$CONFIG['ticket_brand_field'] = null;

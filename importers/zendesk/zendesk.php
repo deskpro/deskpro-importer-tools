@@ -63,8 +63,12 @@ foreach ($reader->getPersonFields() as $n) {
 }
 
 $output->startSection('Ticket custom definitions');
+$ticketCustomDefMap = [];
 foreach ($reader->getTicketFields() as $n) {
-    $writer->writeTicketCustomDef($n['id'], $customDefMapper($n));
+    $customDef                    = $customDefMapper($n);
+    $ticketCustomDefMap[$n['id']] = $customDef['title'];
+
+    $writer->writeTicketCustomDef($n['id'], $customDef);
 }
 
 //--------------------
@@ -177,10 +181,16 @@ foreach ($pager as $n) {
             continue;
         }
 
-        $ticket['custom_fields'][] = [
-            'oid'   => $c['id'],
-            'value' => $c['value'],
-        ];
+        if (!empty($CONFIG['ticket_brand_field'])
+            && isset($ticketCustomDefMap[$c['id']])
+            && $ticketCustomDefMap[$c['id']] === $CONFIG['ticket_brand_field']) {
+            $ticket['brand'] = $c['value'];
+        } else {
+            $ticket['custom_fields'][] = [
+                'oid'   => $c['id'],
+                'value' => $c['value'],
+            ];
+        }
     }
 
     // messages
