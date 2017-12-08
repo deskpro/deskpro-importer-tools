@@ -485,8 +485,6 @@ class WriteHelper
             $this->logger->error("Unable to write model: {$e->getMessage()}");
             $this->logger->error('Raw data:');
             $this->logger->error(json_encode($rawData));
-
-            throw $e;
         }
     }
 
