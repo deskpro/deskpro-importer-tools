@@ -196,10 +196,11 @@ foreach ($pager as $n) {
     // messages
     foreach ($reader->getTicketComments($n['id']) as $c) {
         $message = [
-            'oid'     => $c['id'],
-            'person'  => $c['author_id'],
-            'message' => $c['body'],
-            'is_note' => !$c['public'],
+            'oid'          => $c['id'],
+            'person'       => $c['author_id'],
+            'message'      => $c['body'],
+            'is_note'      => !$c['public'],
+            'date_created' => $n['created_at'],
         ];
 
         foreach ($c['attachments'] as $a) {
