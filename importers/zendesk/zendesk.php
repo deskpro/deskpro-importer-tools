@@ -31,11 +31,11 @@ $loader = AttachmentHelper::getHelper();
 
 $customDefMapper = function(array $data) {
     $customDef = [
-        'title'           => $data['title_in_portal'] ?: $data['title'],
+        'title'           => isset($data['title_in_portal']) && $data['title_in_portal'] ? $data['title_in_portal'] : $data['title'],
         'description'     => $data['description'],
         'is_enabled'      => $data['active'],
         'is_user_enabled' => $data['active'],
-        'is_agent_field'  => !$data['visible_in_portal'],
+        'is_agent_field'  => isset($data['visible_in_portal']) && !$data['visible_in_portal'],
         'widget_type'     => ZenDeskMapper::$customFieldWidgetTypeMapping[$data['type']],
     ];
 
@@ -127,7 +127,7 @@ foreach ($pager as $n) {
 
     // custom fields
     foreach ($n['user_fields'] as $c) {
-        if (!$c['value']) {
+        if (!isset($c['value']) || !$c['value']) {
             continue;
         }
 
