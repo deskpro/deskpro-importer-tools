@@ -114,7 +114,8 @@ final class RetryAfterException extends \RuntimeException
             }
         }
 
-        throw new \Exception(sprintf('Unable to parse `Retry-After` from %s', $raw_headers));
+        // default sleep timeout
+        return 10;
     }
 }
 
