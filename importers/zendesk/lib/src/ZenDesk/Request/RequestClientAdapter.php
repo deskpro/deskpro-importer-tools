@@ -28,8 +28,8 @@
 
 namespace DeskPRO\ImporterTools\Importers\ZenDesk\Request;
 
-use Exception;
 use GuzzleHttp\Exception\BadResponseException;
+use GuzzleHttp\Exception\RequestException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Zendesk\API\Exceptions\ApiResponseException;
@@ -86,14 +86,14 @@ class RequestClientAdapter implements RequestAdapterInterface
      * Do API request.
      *
      * @param Request $request
-     * @param int     $retry_attempt
+     * @param int     $retryAttempt
      *
      * @throws RetryAfterException
      * @throws \Exception
      *
      * @return \stdClass
      */
-    private function doApiRequest(Request $request, $retry_attempt = 0)
+    private function doApiRequest(Request $request, $retryAttempt = 0)
     {
         try {
             $endpointClass = $request->getEndpoint();
@@ -116,7 +116,9 @@ class RequestClientAdapter implements RequestAdapterInterface
                 if ($error instanceof BadResponseException) {
                     $errorCode = $error->getCode();
                 } else {
-                    if ($debug->lastResponseError instanceof \Exception) {
+                    if ($debug->lastResponseError instanceof RequestException) {
+                        return $this->retry($request, $retryAttempt, $e);
+                    } elseif ($debug->lastResponseError instanceof \Exception) {
                         throw $debug->lastResponseError;
                     } else {
                         throw $e;
@@ -136,7 +138,7 @@ class RequestClientAdapter implements RequestAdapterInterface
 
                         return $this->retry(
                             $request,
-                            $retry_attempt,
+                            $retryAttempt,
                             new RetryAfterException($e->getMessage(), $timeout),
                             $timeout
                         );
@@ -155,14 +157,14 @@ class RequestClientAdapter implements RequestAdapterInterface
                         $this->logger->error($debug->lastResponseCode);
                         $this->logger->error($debug->lastResponseError);
 
-                        return $this->retry($request, $retry_attempt, $e);
+                        return $this->retry($request, $retryAttempt, $e);
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->logger->error('Unknown API request error. Will retry.');
             $this->logger->error($e);
 
-            return $this->retry($request, $retry_attempt, $e);
+            return $this->retry($request, $retryAttempt, $e);
         }
 
         $this->wasRequest = true;
@@ -173,34 +175,34 @@ class RequestClientAdapter implements RequestAdapterInterface
     /**
      * Retry api request on error response.
      *
-     * @param Request   $request
-     * @param int       $retry_attempt
-     * @param Exception $exception
-     * @param int       $timeout
+     * @param Request    $request
+     * @param int        $retryAttempt
+     * @param \Exception $exception
+     * @param int        $timeout
      *
-     * @throws Exception
+     * @throws \Exception
      * @throws RetryAfterException
      *
      * @return \stdClass
      */
-    private function retry(Request $request, $retry_attempt, Exception $exception, $timeout = 0)
+    private function retry(Request $request, $retryAttempt, \Exception $exception, $timeout = 0)
     {
         // Retry attempt timeouts (in seconds)
         $retry_timeouts = [2, 5, 10, 30];
 
-        if ($this->wasRequest && $retry_attempt++ < 10) {
+        if ($this->wasRequest && $retryAttempt++ < 10) {
             if ($timeout < 1) {
-                $timeout = isset($retry_timeouts[$retry_attempt]) ? $retry_timeouts[$retry_attempt] : 60;
+                $timeout = isset($retry_timeouts[$retryAttempt]) ? $retry_timeouts[$retryAttempt] : 60;
             }
 
             $this->logger->error(sprintf(
                 'Retry api request, attempt = %d, timeout = %d.',
-                $retry_attempt, $timeout
+                $retryAttempt, $timeout
             ));
 
             sleep($timeout);
 
-            return $this->doApiRequest($request, $retry_attempt);
+            return $this->doApiRequest($request, $retryAttempt);
         }
 
         throw $exception;
