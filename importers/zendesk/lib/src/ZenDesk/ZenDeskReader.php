@@ -413,8 +413,11 @@ class ZenDeskReader
                 $access  = $this->adapter->doRequest(new Request(HelpCenter\SectionAccessPolicy::class, 'find', [
                     'id' => $section['id'],]
                 ));
-                $access  = $access ? $this->toArray($access) : null;
-                $section = array_merge($section, $access);
+
+                $access = $access ? $this->toArray($access) : null;
+                if ($access) {
+                    $section = array_merge($section, $access);
+                }
 
                 $sections[] = $section;
             }
