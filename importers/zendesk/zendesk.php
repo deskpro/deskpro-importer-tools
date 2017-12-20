@@ -198,7 +198,7 @@ foreach ($pager as $n) {
         $message = [
             'oid'          => $c['id'],
             'person'       => $c['author_id'],
-            'message'      => $c['body'],
+            'message'      => $c['html_body'],
             'is_note'      => !$c['public'],
             'date_created' => $n['created_at'],
         ];
