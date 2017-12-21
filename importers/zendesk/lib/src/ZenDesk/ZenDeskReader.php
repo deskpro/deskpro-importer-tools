@@ -97,6 +97,18 @@ class ZenDeskReader
     }
 
     /**
+     * @param int $id
+     *
+     * @return array
+     */
+    public function getPerson($id)
+    {
+        $result = $this->adapter->doRequest(new Request(CoreAPI\Person::class, 'find', $id));
+
+        return $result ? $this->toArray($result->user) : null;
+    }
+
+    /**
      * Returns a batch of the users collection.
      *
      * @param \DateTime $startTime

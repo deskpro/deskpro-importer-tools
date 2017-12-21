@@ -102,10 +102,7 @@ foreach ($reader->getOrganizations() as $n) {
 // People
 //--------------------
 
-$output->startSection('People');
-$pager = $reader->getPersonPager(new \DateTime($CONFIG['start_time']));
-
-foreach ($pager as $n) {
+$writePerson = function(array $n) use($writer, $output) {
     // user could have empty email, add auto generated one
     if (!$n['email']) {
         $n['email'] = 'imported.user.'.$n['id'].'@example.com';
@@ -145,6 +142,13 @@ foreach ($pager as $n) {
     } else {
         $writer->writeUser($n['id'], $person, false);
     }
+};
+
+$output->startSection('People');
+$pager = $reader->getPersonPager(new \DateTime($CONFIG['start_time']));
+
+foreach ($pager as $n) {
+    $writePerson($n);
 }
 
 //--------------------
