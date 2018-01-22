@@ -102,7 +102,10 @@ foreach ($reader->getOrganizations() as $n) {
 // People
 //--------------------
 
-$writePerson = function(array $n) use($writer, $output) {
+$validTimezones = \DateTimeZone::listIdentifiers();
+$validTimezones = array_combine($validTimezones, $validTimezones);
+
+$writePerson = function(array $n) use($writer, $output, $validTimezones) {
     // user could have empty email, add auto generated one
     if (!$n['email']) {
         $n['email'] = 'imported.user.'.$n['id'].'@example.com';
@@ -117,6 +120,8 @@ $writePerson = function(array $n) use($writer, $output) {
 
     if (isset(ZenDeskMapper::$timezoneMapping[$n['time_zone']])) {
         $person['timezone'] = ZenDeskMapper::$timezoneMapping[$n['time_zone']];
+    } elseif (isset($validTimezones[$n['time_zone']])) {
+        $person['timezone'] = $validTimezones[$n['time_zone']];
     } else {
         $person['timezone'] = 'UTC';
         $output->warning("Found unknown timezone `{$n['time_zone']}`");
