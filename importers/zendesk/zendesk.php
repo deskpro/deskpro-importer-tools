@@ -85,7 +85,7 @@ foreach ($reader->getOrganizations() as $n) {
 
     // custom fields
     foreach ($n['organization_fields'] as $c) {
-        if (!$c['value']) {
+        if (!isset($c['value']) || !$c['value']) {
             continue;
         }
 
