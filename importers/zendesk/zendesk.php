@@ -240,7 +240,7 @@ $output->startSection('Article categories');
 
 $sections = [];
 foreach ($reader->getArticlesSections() as $n) {
-    $accessPolicy = $n['access_policy'];
+    $accessPolicy = !empty($n['access_policy']) ? $n['access_policy'] : ['viewable_by' => 'staff'];
 
     $sections[$n['category_id']][] = [
         'oid'         => $n['id'],
