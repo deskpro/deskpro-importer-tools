@@ -89,6 +89,11 @@ class WriteHelper
     private $batchMapping;
 
     /**
+     * @var string
+     */
+    private $oidPrefix;
+
+    /**
      * @return WriteHelper
      */
     public static function getHelper()
@@ -123,6 +128,18 @@ class WriteHelper
         $this->validator       = $validator;
         $this->errorsGenerator = $errorsGenerator;
         $this->logger          = $logger;
+    }
+
+    /**
+     * @param string $oidPrefix
+     *
+     * @return $this
+     */
+    public function setOidPrefix($oidPrefix)
+    {
+        $this->oidPrefix = $oidPrefix;
+
+        return $this;
     }
 
     /**
@@ -441,6 +458,9 @@ class WriteHelper
             $model = $this->serializer->fromArray($rawData, $modelClassName);
             $model->setOid($oid);
             $model->setRawData($rawData);
+            if ($this->oidPrefix) {
+                $model->setOidPrefix($this->oidPrefix);
+            }
 
             $this->lastModel = $model;
 

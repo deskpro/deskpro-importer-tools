@@ -25,6 +25,8 @@ $output = OutputHelper::getHelper();
 $writer = WriteHelper::getHelper();
 $loader = AttachmentHelper::getHelper();
 
+$writer->setOidPrefix($CONFIG['account']['subdomain']);
+
 //--------------------
 // Custom definitions
 //--------------------
