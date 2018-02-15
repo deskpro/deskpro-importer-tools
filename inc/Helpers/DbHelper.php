@@ -31,6 +31,7 @@ namespace DeskPRO\ImporterTools\Helpers;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class DbHelper.
@@ -51,22 +52,6 @@ class DbHelper
      * @var Connection
      */
     private $connection;
-
-    /**
-     * @return DbHelper
-     */
-    public static function getHelper()
-    {
-        /** @var mixed $DP_CONTAINER */
-        global $DP_CONTAINER;
-
-        static $helper;
-        if (null === $helper) {
-            $helper = new self($DP_CONTAINER->get('dp.importer_logger'));
-        }
-
-        return $helper;
-    }
 
     /**
      * Constructor.

@@ -53,7 +53,8 @@ class ScriptAutoloadHelper
      *
      * @return bool
      */
-    public function __invoke($classname) {
+    public function __invoke($classname)
+    {
         if (strpos($classname, 'DeskPRO\\ImporterTools\\Importers\\') !== 0) {
             return false;
         }

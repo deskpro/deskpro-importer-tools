@@ -29,6 +29,7 @@
 namespace DeskPRO\ImporterTools\Helpers;
 
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class OutputHelper.
@@ -41,27 +42,6 @@ class OutputHelper
     private $logger;
 
     /**
-     * @var string
-     */
-    private $currentSection;
-
-    /**
-     * @return OutputHelper
-     */
-    public static function getHelper()
-    {
-        /** @var mixed $DP_CONTAINER */
-        global $DP_CONTAINER;
-
-        static $helper;
-        if (null === $helper) {
-            $helper = new self($DP_CONTAINER->get('dp.importer_logger'));
-        }
-
-        return $helper;
-    }
-
-    /**
      * Constructor.
      *
      * @param LoggerInterface $logger
@@ -70,43 +50,6 @@ class OutputHelper
     {
         $this->logger = $logger;
     }
-
-    /**
-     * @param string $title
-     *
-     * @return $this
-     */
-    public function startSection($title)
-    {
-        $this->finishSection();
-        $this->currentSection = $title;
-
-        $this->logger->info('<comment>');
-        $this->logger->info(sprintf('Export `%s` section.', $title));
-        $this->logger->info('=====================================');
-        $this->logger->info('</comment>');
-    }
-
-    public function finishSection()
-    {
-        if (!$this->currentSection) {
-            return;
-        }
-
-        $this->logger->info('<comment>');
-        $this->logger->info('=====================================');
-        $this->logger->info(sprintf('Completed `%s` section.', $this->currentSection));
-        $this->logger->info('</comment>');
-
-        $this->currentSection = null;
-    }
-
-    public function finishProcess()
-    {
-        $this->finishSection();
-        $this->logger->info('<comment>All done.</comment>');
-    }
-
     /**
      * @param string $message
      */
