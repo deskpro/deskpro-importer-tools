@@ -93,7 +93,6 @@ If you are not going to build own import tool based on `custom.php` and just wan
                  |--person102.json 
                  |--person103.json
                  ...
-       |--3 
            |--2 
                  |--person201.json 
                  |--person202.json 
