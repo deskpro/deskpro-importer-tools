@@ -8,7 +8,7 @@ If you are using a different product that does not have already written importer
 * Run the import process:
 
 ```bash
-    $ php bin/import mytool
+    $ php bin/console dp:import mytool
 ```
 
 Sample data files exist in the `example-data/` directory to show you what format the files are expected to be in. 
@@ -104,8 +104,8 @@ If you are not going to build own import tool based on `custom.php` and just wan
 
 You can now optionally verify the integrity of your data:
 
-`$ php bin/import verify --input-path=/path/to/your/json/files/base/path`
+`$ php bin/console dp:import:verify --input-path=/path/to/your/json/files/base/path`
 
 When you're ready, go ahead and apply the import to your live database:
 
-`$ php bin/import apply --input-path=/path/to/your/json/files/base/path`
+`$ php bin/console dp:import:apply --input-path=/path/to/your/json/files/base/path`

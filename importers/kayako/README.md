@@ -27,19 +27,19 @@ Prepare your importer config:
 Run the import process to fetch all of your data from Kayako:
 
     $ cd /path/to/deskpro
-    $ php bin/import kayako
+    $ php bin/console dp:import kayako
 
 You can now optionally verify the integrity of your data:
 
-    $ php bin/import verify
+    $ php bin/console dp:import:verify
 
 When you're ready, go ahead and apply the import to your live database:
 
-    $ php bin/import apply
+    $ php bin/console dp:import:apply
 
 And finally, you can clean up the temporary data files from the filesystem:
 
-    $ php bin/import clean
+    $ php bin/console dp:import:clean
 
 **Via Admin Interface**
 
