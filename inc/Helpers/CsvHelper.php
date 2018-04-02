@@ -74,7 +74,7 @@ class CsvHelper
                 $header = [];
                 foreach ($row as $key => $value) {
                     $value = trim($value);
-                    $value = preg_replace('/[^\w\d\s_-]/', '', $value);
+                    $value = preg_replace('/[^\w\d\s_\.-]/', '', $value);
 
                     $header[$key] = $value;
                 }
