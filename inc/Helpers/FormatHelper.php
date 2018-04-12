@@ -28,10 +28,10 @@
 
 namespace DeskPRO\ImporterTools\Helpers;
 
+use Application\DeskPRO\NewSettings\SettingsResolver;
 use libphonenumber\PhoneNumberFormat;
 use libphonenumber\PhoneNumberUtil;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -44,6 +44,11 @@ class FormatHelper
      * @var ValidatorInterface
      */
     private $validator;
+
+    /**
+     * @var SettingsResolver
+     */
+    private $settingsResolver;
 
     /**
      * @var LoggerInterface
@@ -285,12 +290,14 @@ class FormatHelper
      * Constructor.
      *
      * @param ValidatorInterface $validator
+     * @param SettingsResolver $settingsResolver
      * @param LoggerInterface    $logger
      */
-    public function __construct(ValidatorInterface $validator, LoggerInterface $logger)
+    public function __construct(ValidatorInterface $validator, SettingsResolver $settingsResolver, LoggerInterface $logger)
     {
-        $this->validator = $validator;
-        $this->logger    = $logger;
+        $this->validator        = $validator;
+        $this->settingsResolver = $settingsResolver;
+        $this->logger           = $logger;
     }
 
     /**
@@ -416,6 +423,11 @@ class FormatHelper
             $date = new \DateTime($date);
         } catch (\Exception $e) {
             $date = new \DateTime();
+        }
+
+        $timezone = $this->settingsResolver->getGlobalSettings()->get('importer_timezone', 'UTC');
+        if ($timezone) {
+            $date->setTimezone(new \DateTimeZone($timezone));
         }
 
         return $date->format('c');
