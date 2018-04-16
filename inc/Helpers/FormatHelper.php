@@ -547,20 +547,20 @@ class FormatHelper
     }
 
     /**
-     * @param string $number
+     * @param string $originalNumber
      * @param string $countryName
      *
      * @return string
      */
-    public function getFormattedNumber($number, $countryName = null)
+    public function getFormattedNumber($originalNumber, $countryName = null)
     {
+        $number = $originalNumber;
         if (!$number) {
             return '';
         }
 
         $number = trim($number);
         $number = preg_replace('#[^0-9]#', '', $number);
-        $number = preg_replace('#^0+#', '', $number);
 
         if (!$number) {
             return '';
@@ -569,34 +569,69 @@ class FormatHelper
         $numberUtil   = PhoneNumberUtil::getInstance();
         $parsedNumber = null;
 
-        $countryCodes = ['', '+'];
+        // collect possible calling codes
+        $callingCodes = [];
         foreach (self::$callingCodes as $codeNum => $codeCountryName) {
             if ($countryName && strtolower($countryName) !== strtolower($codeCountryName)) {
                 continue;
             }
 
-            $countryCodes[] = '+'.$codeNum;
+            $callingCodes[] = $codeNum;
         }
 
-        foreach ($countryCodes as $countryCode) {
-            try {
-                $checkNumber  = $countryCode.' '.$number;
-                $parsedNumber = $numberUtil->parse($checkNumber, null);
+        $tryPrefixes = ['', '+'];
+        foreach ($callingCodes as $callingCode) {
+            $tryPrefixes[] = '+'.$callingCode;
+        }
 
-                if ($numberUtil->isValidNumber($parsedNumber)) {
+        $parseNumber = function ($number) use ($numberUtil, $tryPrefixes) {
+            foreach ($tryPrefixes as $countryCode) {
+                try {
+                    $checkNumber  = $countryCode.' '.$number;
+                    $parsedNumber = $numberUtil->parse($checkNumber, null);
+
+                    if ($numberUtil->isValidNumber($parsedNumber)) {
+                        return $parsedNumber;
+                    }
+                } catch (\Exception $e) {
+                }
+            }
+
+            return;
+        };
+
+        // parse the number as is
+        $parsedNumber = $parseNumber($number);
+
+        // check leading zero
+        if (!$parsedNumber) {
+            $tryNumber = $number;
+            while (preg_match('#^0#', $tryNumber)) {
+                $tryNumber = preg_replace('#^0#', '', $tryNumber);
+                $parsedNumber = $parseNumber($tryNumber);
+                if ($parsedNumber) {
                     break;
                 }
-            } catch (\Exception $e) {
+            }
+        }
+
+        // check if leading zero is after country calling code
+        if (!$parsedNumber) {
+            foreach ($callingCodes as $callingCode) {
+                $parsedNumber = $parseNumber(preg_replace("#^{$callingCode}(0+)#", '', $number));
+                if ($parsedNumber) {
+                    break;
+                }
             }
         }
 
         if (!$parsedNumber) {
-            $this->logger->warning("Unable to parse phone number `$number`.");
+            $this->logger->warning("Unable to parse phone number `$originalNumber`.");
 
             return '';
         }
         if (!$numberUtil->isValidNumber($parsedNumber)) {
-            $this->logger->warning("Phone number `$number` is not valid.");
+            $this->logger->warning("Phone number `$originalNumber` is not valid.");
 
             return '';
         }
@@ -616,9 +651,14 @@ class FormatHelper
         }
 
         $url = trim($url);
+
+        // missing scheme, e.g. `site.com`
         if (strpos($url, 'http://') !== 0 && strpos($url, 'https://') !== 0) {
             $url = 'http://'.$url;
         }
+
+        // scheme dupes, e.g. `http://http://site.com`
+        $url = preg_replace('#(http(s|)://)+#', 'http$2://', $url);
 
         $errors = $this->validator->validate($url, [
             new Assert\Url(),
