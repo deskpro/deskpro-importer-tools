@@ -706,20 +706,19 @@ class FormatHelper
      */
     public function getFormattedDate($date)
     {
+        $timezone = $this->settingsResolver->getGlobalSettings()->get('importer_timezone', 'UTC');
+
         try {
             if (is_int($date) || ctype_digit($date)) {
                 $date = '@'.$date;
             }
 
-            $date = new \DateTime($date);
+            $date = new \DateTime($date, new \DateTimeZone($timezone));
         } catch (\Exception $e) {
-            $date = new \DateTime();
+            $date = new \DateTime('now', new \DateTimeZone($timezone));
         }
 
-        $timezone = $this->settingsResolver->getGlobalSettings()->get('importer_timezone', 'UTC');
-        if ($timezone) {
-            $date->setTimezone(new \DateTimeZone($timezone));
-        }
+        $date->setTimezone(new \DateTimeZone('UTC'));
 
         return $date->format('c');
     }
