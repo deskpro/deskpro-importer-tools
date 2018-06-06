@@ -96,7 +96,7 @@ abstract class AbstractHelper
      */
     protected function doIncrementalExportRequest($type, array $options, $apiGroup = '')
     {
-        if (!$options['start_time']) {
+        if (!isset($options['start_time'])) {
             throw new MissingParametersException(__METHOD__, ['start_time']);
         }
 
