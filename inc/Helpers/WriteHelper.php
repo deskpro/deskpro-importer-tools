@@ -343,7 +343,7 @@ class WriteHelper
      * @param int|string $oid
      * @param bool       $oidWithPrefix
      *
-     * @return string
+     * @return array
      */
     public function getUser($oid, $oidWithPrefix = true)
     {
@@ -358,7 +358,7 @@ class WriteHelper
      * @param int|string $oid
      * @param bool       $oidWithPrefix
      *
-     * @return string
+     * @return array
      */
     public function getAgent($oid, $oidWithPrefix = true)
     {
@@ -367,6 +367,16 @@ class WriteHelper
         }
 
         return $this->getModelData($oid, Model\Person::class);
+    }
+
+    /**
+     * @param int|string $oid
+     *
+     * @return array
+     */
+    public function getTicketCustomDef($oid)
+    {
+        return $this->getModelData($oid, Model\TicketCustomDef::class);
     }
 
     public function printLastModel()
