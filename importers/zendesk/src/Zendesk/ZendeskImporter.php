@@ -29,6 +29,11 @@ class ZendeskImporter extends AbstractImporter
      */
     public function init(array $config)
     {
+        if (!isset($config['start_time'])) {
+            // default time offset
+            $config['start_time'] = '-2 years';
+        }
+
         $this->reader = new ZendeskReader($this->logger);
         $this->reader->setConfig($config['account']);
         $this->writer()->setOidPrefix($config['account']['subdomain']);
