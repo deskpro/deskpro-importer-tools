@@ -15,7 +15,7 @@ After this tool completes, you will run the standard Deskpro import process to s
 * Ticket Message Attachments
 
 **Setup**
-* Create a new directory titlted `importer` in your `deskpro/config` directory
+* Create a new directory titled `importer` in your `deskpro/config` directory
 * Download https://github.com/deskpro/deskpro-importer-tools/blob/master/importers/spiceworks/config.dist.php to this folder
 * Rename the config file from `/path/to/deskpro/config/importer/config.dist.php` to `/path/to/deskpro/config/importer/spiceworks.php`
 * Edit the config values in the `/path/to/deskpro/config/importer/spiceworks.php`
