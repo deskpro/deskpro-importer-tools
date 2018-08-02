@@ -1,9 +1,9 @@
 OsTicket importer script
 ========================
 
-This tool will connect to your OsTicket database and export your data in the standard DeskPRO Import Format.
+This tool will connect to your OsTicket database and export your data in the standard Deskpro Import Format.
 
-After this tool completes, you will run the standard DeskPRO import process to save the data to your live helpdesk.
+After this tool completes, you will run the standard Deskpro import process to save the data to your live helpdesk.
 
 **What does it import?**
 
@@ -19,7 +19,9 @@ After this tool completes, you will run the standard DeskPRO import process to s
 
 **Setup**
 
-* Rename the config file from `/path/to/deskpro/config/importer/osticket.dist.php` to `/path/to/deskpro/config/importer/osticket.php`
+* Create a new directory titlted `importer` in your `deskpro/config` directory
+* Download https://github.com/deskpro/deskpro-importer-tools/blob/master/importers/osticket/config.dist.php to this folder
+* Rename the config file from `/path/to/deskpro/config/importer/config.dist.php` to `/path/to/deskpro/config/importer/osticket.php`
 * Edit the config values in the `/path/to/deskpro/config/importer/osticket.php`
 
 **Import Data**
