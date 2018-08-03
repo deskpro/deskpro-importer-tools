@@ -38,3 +38,7 @@ When you're ready, go ahead and apply the import to your live database:
 And finally, you can clean up the temporary data files from the filesystem:
 
     $ php bin/console dp:import:clean
+  
+**Note**
+
+If your main admin account existed in both Spiceworks and Deskpro, you may have inadvertently removed your own admin permissions by running this import. You can restore your permissions here: https://support.deskpro.com/en/kb/articles/i-ve-lost-admin-permissions-and-i-m-locked-out-of-deskpro-on-premise - or you can preventatively add a unique admin account in Deskpro which does not get overwritten by the new data.
