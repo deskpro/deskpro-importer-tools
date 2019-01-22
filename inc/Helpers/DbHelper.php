@@ -83,6 +83,19 @@ class DbHelper
     }
 
     /**
+     * @param string $tableName
+     * @param string $column
+     *
+     * @return bool
+     */
+    public function columnExists($tableName, $column)
+    {
+        $result = $this->connection->executeQuery("SHOW COLUMNS FROM `$tableName` LIKE '$column'");
+
+        return $result->rowCount() > 0;
+    }
+
+    /**
      * @param string $query
      * @param array  $params
      * @param int    $perPage
