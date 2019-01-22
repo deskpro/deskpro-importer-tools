@@ -40,48 +40,51 @@ class KayakoImporter extends AbstractImporter
         //--------------------
 
         $this->progress()->startOrganizationImport();
-        $pager = $this->db()->getPager('SELECT * FROM swuserorganizations');
 
-        foreach ($pager as $n) {
-            $organization = [
-                'name'         => $n['organizationname'],
-                'date_created' => date('c', $n['dateline']),
-            ];
+        if ($this->db()->tableExists('swuserorganizations')) {
+            $pager = $this->db()->getPager('SELECT * FROM swuserorganizations');
 
-            // set organization contact data
-            // website
-            if ($this->formatter()->getFormattedUrl($n['website'])) {
-                $organization['contact_data']['website'][] = [
-                    'url' => $this->formatter()->getFormattedUrl($n['website']),
+            foreach ($pager as $n) {
+                $organization = [
+                    'name'         => $n['organizationname'],
+                    'date_created' => date('c', $n['dateline']),
                 ];
-            }
 
-            // phone numbers
-            if ($this->formatter()->getFormattedNumber($n['phone'])) {
-                $organization['contact_data']['phone'][] = [
-                    'number' => $this->formatter()->getFormattedNumber($n['phone']),
-                    'type'   => 'phone',
-                ];
-            }
-            if ($this->formatter()->getFormattedNumber($n['fax'])) {
-                $organization['contact_data']['phone'][] = [
-                    'number' => $this->formatter()->getFormattedNumber($n['fax']),
-                    'type'   => 'fax',
-                ];
-            }
+                // set organization contact data
+                // website
+                if ($this->formatter()->getFormattedUrl($n['website'])) {
+                    $organization['contact_data']['website'][] = [
+                        'url' => $this->formatter()->getFormattedUrl($n['website']),
+                    ];
+                }
 
-            // address
-            if ($n['address']) {
-                $organization['contact_data']['address'][] = [
-                    'address' => $n['address'],
-                    'city'    => $n['city'],
-                    'zip'     => $n['postalcode'],
-                    'state'   => $n['state'],
-                    'country' => $n['country'],
-                ];
-            }
+                // phone numbers
+                if ($this->formatter()->getFormattedNumber($n['phone'])) {
+                    $organization['contact_data']['phone'][] = [
+                        'number' => $this->formatter()->getFormattedNumber($n['phone']),
+                        'type'   => 'phone',
+                    ];
+                }
+                if ($this->formatter()->getFormattedNumber($n['fax'])) {
+                    $organization['contact_data']['phone'][] = [
+                        'number' => $this->formatter()->getFormattedNumber($n['fax']),
+                        'type'   => 'fax',
+                    ];
+                }
 
-            $this->writer()->writeOrganization($n['userorganizationid'], $organization);
+                // address
+                if ($n['address']) {
+                    $organization['contact_data']['address'][] = [
+                        'address' => $n['address'],
+                        'city'    => $n['city'],
+                        'zip'     => $n['postalcode'],
+                        'state'   => $n['state'],
+                        'country' => $n['country'],
+                    ];
+                }
+
+                $this->writer()->writeOrganization($n['userorganizationid'], $organization);
+            }
         }
 
 
@@ -120,7 +123,7 @@ class KayakoImporter extends AbstractImporter
             $person = [
                 'name'        => $n['fullname'],
                 'emails'      => [$email],
-                'is_disabled' => !$n['isenabled'],
+                'is_disabled' => isset($n['isenabled']) ? !$n['isenabled'] : (isset($n['enabled']) ? !$n['enabled'] : false),
             ];
 
             if ($n['staffgroupid']) {
@@ -156,7 +159,11 @@ class KayakoImporter extends AbstractImporter
             $userId = $n['userid'];
 
             $userEmails = [];
-            $emailsRows = $this->db()->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $userId]);
+            if ($this->db()->columnExists('swuseremails', 'linktypeid')) {
+                $emailsRows = $this->db()->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $userId]);
+            } else {
+                $emailsRows = $this->db()->findAll('SELECT * FROM swuseremails WHERE userid = :user_id', ['user_id' => $userId]);
+            }
 
             foreach ($emailsRows as $emailsRow) {
                 $email = $emailsRow['email'];
@@ -180,17 +187,20 @@ class KayakoImporter extends AbstractImporter
             $person = [
                 'name'         => $n['fullname'] ?: $userEmails[0],
                 'emails'       => $userEmails,
-                'is_disabled'  => !$n['isenabled'],
-                'organization' => $n['userorganizationid'],
+                'is_disabled'  => isset($n['isenabled']) ? !$n['isenabled'] : (isset($n['enabled']) ? !$n['enabled'] : false),
                 'date_created' => date('c', $n['dateline']),
             ];
 
-            if ($n['usergroupid'] && isset($userGroups[$n['usergroupid']])) {
-                $person['user_groups'][] = $userGroups[$n['usergroupid']];
+            if (isset($n['userorganizationid'])) {
+                $person['organization'] = $n['userorganizationid'];
+
+                if ($person['organization']) {
+                    $person['organization_position'] = $n['userdesignation'];
+                }
             }
 
-            if ($person['organization']) {
-                $person['organization_position'] = $n['userdesignation'];
+            if ($n['usergroupid'] && isset($userGroups[$n['usergroupid']])) {
+                $person['user_groups'][] = $userGroups[$n['usergroupid']];
             }
 
             $phone = $this->formatter()->getFormattedNumber($n['phone']);
@@ -221,22 +231,39 @@ class KayakoImporter extends AbstractImporter
         ];
 
         // prepare a map of ticket departments
-        $ticketDepartmentMapping    = [];
-        $getTicketDepartments = function ($parentId, $parentTitle = '') use (&$ticketDepartmentMapping, &$getTicketDepartments) {
-            $pager = $this->db()->findAll('SELECT * FROM swdepartments WHERE parentdepartmentid = :parent_id', [
-                'parent_id' => $parentId,
-            ]);
+        $ticketDepartmentMapping = [];
 
+        if ($this->db()->columnExists('swdepartments', 'parentdepartmentid')) {
+            $getTicketDepartments = function ($parentId, $parentTitle = '') use (&$ticketDepartmentMapping, &$getTicketDepartments) {
+                $pager = $this->db()->findAll('SELECT * FROM swdepartments WHERE parentdepartmentid = :parent_id', [
+                    'parent_id' => $parentId,
+                ]);
+
+                foreach ($pager as $n) {
+                    $id    = $n['departmentid'];
+                    $title = $parentTitle.$n['title'];
+
+                    $ticketDepartmentMapping[$id] = $title;
+                    $getTicketDepartments($id, $title.' > ');
+                }
+            };
+
+            $getTicketDepartments(0);
+        } else {
+            $pager = $this->db()->findAll('SELECT * FROM swdepartments');
             foreach ($pager as $n) {
                 $id    = $n['departmentid'];
-                $title = $parentTitle.$n['title'];
+                $title = $n['title'];
 
                 $ticketDepartmentMapping[$id] = $title;
-                $getTicketDepartments($id, $title.' > ');
             }
-        };
+        }
 
-        $getTicketDepartments(0);
+        $ticketStatuses = [];
+        $pager = $this->db()->findAll('SELECT * FROM swticketstatus');
+        foreach ($pager as $status) {
+            $ticketStatuses[$status['ticketstatusid']] = $status['title'];
+        }
 
         // get tickets
         $pager = $this->db()->getPager('SELECT * FROM swtickets');
@@ -252,10 +279,24 @@ class KayakoImporter extends AbstractImporter
                 'subject'      => $n['subject'] ?: 'No subject',
                 'person'       => $person,
                 'agent'        => $this->writer()->agentOid($n['staffid']),
-                'department'   => isset($ticketDepartmentMapping[$n['departmentid']]) ? $ticketDepartmentMapping[$n['departmentid']] : $n['departmenttitle'],
-                'status'       => isset($statusMapping[$n['ticketstatustitle']]) ? $statusMapping[$n['ticketstatustitle']] : 'awaiting_agent',
                 'date_created' => date('c', $n['dateline']),
             ];
+
+            if (isset($ticketDepartmentMapping[$n['departmentid']])) {
+                $ticket['department'] = $ticketDepartmentMapping[$n['departmentid']];
+            } elseif (isset($n['departmenttitle'])) {
+                $ticket['department'] = $n['departmenttitle'];
+            } else {
+                $ticket['department'] = null;
+            }
+
+            if (isset($n['ticketstatustitle']) && isset($statusMapping[$n['ticketstatustitle']])) {
+                $ticket['status'] = $statusMapping[$n['ticketstatustitle']];
+            } elseif (isset($ticketStatuses[$n['ticketstatusid']]) && isset($statusMapping[$ticketStatuses[$n['ticketstatusid']]])) {
+                $ticket['status'] = $statusMapping[$ticketStatuses[$n['ticketstatusid']]];
+            } else {
+                $ticket['status'] = 'awaiting_agent';
+            }
 
             // dp doesn't have 'on_hold' status but has is_hold flag
             if ($ticket['status'] === 'on_hold') {
@@ -300,10 +341,17 @@ class KayakoImporter extends AbstractImporter
                 ];
 
                 // get message attachments
-                $attachments = $this->db()->findAll('SELECT * FROM swattachments WHERE ticketid = :ticket_id AND linktypeid = :message_id', [
-                    'ticket_id'  => $n['ticketid'],
-                    'message_id' => $m['ticketpostid'],
-                ]);
+                if ($this->db()->columnExists('swattachments', 'linktypeid')) {
+                    $attachments = $this->db()->findAll('SELECT * FROM swattachments WHERE ticketid = :ticket_id AND linktypeid = :message_id', [
+                        'ticket_id'  => $n['ticketid'],
+                        'message_id' => $m['ticketpostid'],
+                    ]);
+                } else {
+                    $attachments = $this->db()->findAll('SELECT * FROM swattachments WHERE ticketid = :ticket_id AND ticketpostid = :message_id', [
+                        'ticket_id'  => $n['ticketid'],
+                        'message_id' => $m['ticketpostid'],
+                    ]);
+                }
 
                 foreach ($attachments as $a) {
                     $attachment = [
@@ -318,10 +366,10 @@ class KayakoImporter extends AbstractImporter
                     ]);
 
                     foreach ($attachmentChunks as $c) {
-                        if ($c['notbase64']) {
+                        if (isset($c['notbase64']) && $c['notbase64']) {
                             $attachment['blob_data'] .= $c['contents'];
-                        } else {
-                            // seems that's not used, skip for now
+                        } elseif (!isset($c['notbase64'])) {
+                            $attachment['blob_data'] .= $c['contents'];
                         }
                     }
 
@@ -339,25 +387,38 @@ class KayakoImporter extends AbstractImporter
             }
 
             // get ticket notes
-            $notesPager = $this->db()->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
-                'ticket_id' => $n['ticketid'],
-            ]);
+            if ($this->db()->columnExists('swticketnotes', 'linktype')) {
+                $notesPager = $this->db()->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
+                    'ticket_id' => $n['ticketid'],
+                ]);
+            } else {
+                $notesPager = $this->db()->getPager('SELECT * FROM swticketnotes WHERE typeid = :ticket_id', [
+                    'ticket_id' => $n['ticketid'],
+                ]);
+            }
 
             foreach ($notesPager as $m) {
-                if (!$m['staffid']) {
+                if (empty($m['staffid']) || empty($m['bystaffid'])) {
                     continue;
                 }
                 if (!$m['note']) {
                     $m['note'] = 'empty content';
                 }
 
-                $ticket['messages'][] = [
+                $note = [
                     'oid'          => 'note_' . $m['ticketnoteid'],
-                    'person'       => $this->writer()->agentOid($m['staffid']),
                     'message'      => $m['note'],
                     'is_note'      => true,
                     'date_created' => date('c', $m['dateline']),
                 ];
+
+                if (isset($m['staffid'])) {
+                    $note['person'] = $this->writer()->agentOid($m['staffid']);
+                } elseif (isset($m['bystaffid'])) {
+                    $note['person'] = $this->writer()->agentOid($m['bystaffid']);
+                }
+
+                $ticket['messages'][] = $note;
             }
 
             if (!$ticket['person']) {
@@ -381,10 +442,17 @@ class KayakoImporter extends AbstractImporter
         //--------------------
 
         $this->progress()->startArticleCategoryImport();
+
         $getArticleCategories = function ($parentId) use (&$getArticleCategories) {
-            $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id', [
-                'parent_id' => $parentId,
-            ]);
+            if ($this->db()->columnExists('swkbcategories', 'parentkbcategoryid')) {
+                $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id', [
+                    'parent_id' => $parentId,
+                ]);
+            } else {
+                $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentcategoryid = :parent_id', [
+                    'parent_id' => $parentId,
+                ]);
+            }
 
             $categories = [];
             foreach ($pager as $n) {
@@ -414,22 +482,35 @@ class KayakoImporter extends AbstractImporter
 
         $pager = $this->db()->getPager('SELECT * FROM swkbarticles');
         foreach ($pager as $n) {
-            // todo need to confirm that it's correct fetching
-            $categories = $this->db()->findAll('SELECT * FROM swkbarticlelinks WHERE kbarticleid = :article_id AND linktypeid > 0', [
-                'article_id' => $n['kbarticleid']
-            ]);
-            $categories = array_map(function($category) {
-                return $category['linktypeid'];
-            }, $categories);
+            if ($this->db()->columnExists('swkbarticlelinks', 'linktypeid')) {
+                $categories = $this->db()->findAll('SELECT * FROM swkbarticlelinks WHERE kbarticleid = :article_id AND linktypeid > 0', [
+                    'article_id' => $n['kbarticleid']
+                ]);
+                $categories = array_map(function($category) {
+                    return $category['linktypeid'];
+                }, $categories);
+            } else {
+                $categories = $this->db()->findAll('SELECT * FROM swkbarticlelinks WHERE kbarticleid = :article_id AND kbcategoryid > 0', [
+                    'article_id' => $n['kbarticleid']
+                ]);
+                $categories = array_map(function($category) {
+                    return $category['kbcategoryid'];
+                }, $categories);
+            }
 
             $article = [
                 'title'        => $n['subject'],
-                'person'       => $this->writer()->agentOid($n['creatorid']),
                 'content'      => '',
-                'status'       => isset($statusMapping[ $n['articlestatus'] ]) ? $statusMapping[ $n['articlestatus'] ] : 'published',
+                'status'       => isset($statusMapping[$n['articlestatus']]) ? $statusMapping[$n['articlestatus']] : 'published',
                 'categories'   => $categories,
                 'date_created' => date('c', $n['dateline']),
             ];
+
+            if (isset($n['creatorid'])) {
+                $article['person'] = $this->writer()->agentOid($n['creatorid']);
+            } elseif (isset($n['staffid'])) {
+                $article['person'] = $this->writer()->agentOid($n['staffid']);
+            }
 
             // get article content
             $contentPager = $this->db()->getPager('SELECT * FROM swkbarticledata WHERE kbarticleid = :article_id', [
@@ -454,49 +535,79 @@ class KayakoImporter extends AbstractImporter
         $this->progress()->startNewsImport();
 
         $newsCategories = [];
-        $pager = $this->db()->getPager('SELECT * FROM swnewscategories');
-        foreach ($pager as $n) {
-            $newsCategories[$n['newscategoryid']] = $n['categorytitle'];
+        if ($this->db()->tableExists('swnewscategories')) {
+            $pager = $this->db()->getPager('SELECT * FROM swnewscategories');
+            foreach ($pager as $n) {
+                $newsCategories[$n['newscategoryid']] = $n['categorytitle'];
+            }
         }
 
-        // todo need status mapping
-        $statusMapping = [
-            2 => 'published',
-        ];
-
-        $pager = $this->db()->getPager('SELECT * FROM swnewsitems');
-        foreach ($pager as $n) {
-            $news = [
-                'title'        => $n['subject'],
-                'person'       => $this->writer()->agentOid($n['staffid']),
-                'content'      => '',
-                'status'       => isset($statusMapping[ $n['newsstatus'] ]) ? $statusMapping[ $n['newsstatus'] ] : 'published',
-                'date_created' => date('c', $n['dateline']),
+        if ($this->db()->tableExists('swnewsitems')) {
+            // todo need status mapping
+            $statusMapping = [
+                2 => 'published',
             ];
 
-            // get news content
-            $contentPager = $this->db()->getPager('SELECT * FROM swnewsitemdata WHERE newsitemid = :news_id', [
-                'news_id' => $n['newsitemid'],
-            ]);
+            $pager = $this->db()->getPager('SELECT * FROM swnewsitems');
+            foreach ($pager as $n) {
+                $news = [
+                    'title'        => $n['subject'],
+                    'person'       => $this->writer()->agentOid($n['staffid']),
+                    'content'      => '',
+                    'status'       => isset($statusMapping[$n['newsstatus']]) ? $statusMapping[$n['newsstatus']] : 'published',
+                    'date_created' => date('c', $n['dateline']),
+                ];
 
-            foreach ($contentPager as $c) {
-                $news['content'] .= $c['contents'];
+                // get news content
+                $contentPager = $this->db()->getPager('SELECT * FROM swnewsitemdata WHERE newsitemid = :news_id', [
+                    'news_id' => $n['newsitemid'],
+                ]);
+
+                foreach ($contentPager as $c) {
+                    $news['content'] .= $c['contents'];
+                }
+
+                if (!$news['content']) {
+                    $news['content'] = 'no content';
+                }
+
+                // get news category
+                $category = $this->db()->findOne('SELECT * FROM swnewscategorylinks WHERE newsitemid = :news_id', [
+                    'news_id' => $n['newsitemid'],
+                ]);
+
+                if ($category && isset($newsCategories[ $category['newscategoryid'] ])) {
+                    $news['category'] = $newsCategories[ $category['newscategoryid'] ];
+                }
+
+                $this->writer()->writeNews($n['newsitemid'], $news);
             }
+        } elseif ($this->db()->tableExists('swnews')) {
+            $pager = $this->db()->getPager('SELECT * FROM swnews');
+            foreach ($pager as $n) {
+                $news = [
+                    'title'        => $n['subject'],
+                    'person'       => $this->writer()->agentOid($n['staffid']),
+                    'content'      => '',
+                    'status'       => $n['newstype'] === 'public' ? 'published' : 'hidden.unpublished',
+                    'date_created' => date('c', $n['dateline']),
+                ];
 
-            if (!$news['content']) {
-                $news['content'] = 'no content';
+                // get news content
+                $contentPager = $this->db()->getPager('SELECT * FROM swnewsdata WHERE newsid = :news_id', [
+                    'news_id' => $n['newsid'],
+                ]);
+
+                foreach ($contentPager as $c) {
+                    $news['content'] .= $c['contents'];
+                }
+
+                if (!$news['content']) {
+                    $news['content'] = 'no content';
+                }
+
+                $this->writer()->writeNews($n['newsid'], $news);
             }
-
-            // get news category
-            $category = $this->db()->findOne('SELECT * FROM swnewscategorylinks WHERE newsitemid = :news_id', [
-                'news_id' => $n['newsitemid'],
-            ]);
-
-            if ($category && isset($newsCategories[$category['newscategoryid']])) {
-                $news['category'] = $newsCategories[$category['newscategoryid']];
-            }
-
-            $this->writer()->writeNews($n['newsitemid'], $news);
         }
 
         //--------------------
@@ -509,7 +620,6 @@ class KayakoImporter extends AbstractImporter
             $pager = $this->db()->getPager('SELECT * FROM swchatobjects');
             foreach ($pager as $n) {
                 $chat = [
-                    'subject'      => $n['subject'],
                     'person'       => $n['userid'] ? $this->writer()->userOid($n['userid']) : $n['useremail'],
                     'agent'        => $this->writer()->agentOid($n['staffid']),
                     'date_created' => date('c', $n['dateline']),
@@ -517,6 +627,10 @@ class KayakoImporter extends AbstractImporter
                     'ended_by'     => 'user',
                     'messages'     => [],
                 ];
+
+                if (isset($n['subject'])) {
+                    $chat['subject'] = $n['subject'];
+                }
 
                 $participantNameMapping = [
                     $n['userfullname'] => $chat['person'],
@@ -527,18 +641,20 @@ class KayakoImporter extends AbstractImporter
                     'chat_id' => $n['chatobjectid'],
                 ]);
 
-                $chatMessages = unserialize($chatData['contents']);
-                foreach ($chatMessages as $messageId => $m) {
-                    if ($m['actiontype'] !== 'message') {
-                        continue;
-                    }
+                $chatMessages = @unserialize($chatData['contents']);
+                if (is_array($chatMessages)) {
+                    foreach ($chatMessages as $messageId => $m) {
+                        if ($m['actiontype'] !== 'message') {
+                            continue;
+                        }
 
-                    $chat['messages'][] = [
-                        'oid'          => $n['chatobjectid'] . '.' . $messageId,
-                        'person'       => isset($participantNameMapping[ $m['name'] ]) ? $participantNameMapping[ $m['name'] ] : null,
-                        'content'      => $m['base64'] ? base64_decode($m['message']) : $m['message'],
-                        'date_created' => date('c', $n['dateline']),
-                    ];
+                        $chat['messages'][] = [
+                            'oid'          => $n['chatobjectid'] . '.' . $messageId,
+                            'person'       => isset($participantNameMapping[$m['name']]) ? $participantNameMapping[$m['name']] : null,
+                            'content'      => $m['base64'] ? base64_decode($m['message']) : $m['message'],
+                            'date_created' => date('c', $n['dateline']),
+                        ];
+                    }
                 }
 
                 // skip empty chats
