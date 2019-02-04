@@ -27,7 +27,7 @@ class KayakoImporter extends AbstractImporter
     public function testConfig()
     {
         // try to make a db request to make sure that provided credentials are correct
-        $this->db()->findOne('SELECT COUNT(*) FROM swuserorganizations');
+        $this->db()->findOne('SELECT COUNT(*) FROM swusers');
     }
 
     /**
