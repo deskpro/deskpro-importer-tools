@@ -2,6 +2,7 @@
 
 namespace DeskPRO\ImporterTools\Importers\Isid;
 
+use Application\DeskPRO\Entity\CustomDefTicket;
 use DeskPRO\ImporterTools\AbstractImporter;
 
 /**
@@ -9,7 +10,15 @@ use DeskPRO\ImporterTools\AbstractImporter;
  */
 class IsidImporter extends AbstractImporter
 {
+    /**
+     * @var array
+     */
     private $config = [];
+
+    /**
+     * @var array
+     */
+    private $ticketCustomFields = [];
 
     /**
      * {@inheritdoc}
@@ -38,24 +47,116 @@ class IsidImporter extends AbstractImporter
      */
     public function runImport()
     {
+
+        $this->gatherCustomFields();
+
         $csv = $this->csv()->readFile($this->config['csv_path'], ',', '"');
-        foreach($csv as $datum) {
-            $answersPath = sprintf('%s%s%s', $this->config['tickets_path'],DIRECTORY_SEPARATOR, $datum['answer']);
-            $questionsPath = sprintf('%s%s%s', $this->config['tickets_path'],DIRECTORY_SEPARATOR, $datum['question']);
-            $answers = $this->collectMessages($answersPath, $datum['custom_data528'], 'answer');
-            $questions = $this->collectMessages($questionsPath, $datum['custom_data528']);
+        $tickets = [];
+        $people = [];
+        foreach($csv as $index => $datum) {
+            echo "line ".$index.PHP_EOL;
+            $questions = [];
+            $answers = [];
+            if($datum['answer']) {
+                $answersPath = sprintf('%s%s%s', $this->config['tickets_path'],DIRECTORY_SEPARATOR, $datum['answer']);
+                $answers = $this->collectMessages($answersPath, $datum['custom_data528'], 'answer');
+            }
+            if($datum['question']) {
+                $questionsPath = sprintf('%s%s%s', $this->config['tickets_path'], DIRECTORY_SEPARATOR, $datum['question']);
+                $questions     = $this->collectMessages($questionsPath, $datum['custom_data528']);
+            }
             $messages = $this->combineMessages($questions, $answers);
+            if(!$messages) {
+                $this->logEmptyMessages($datum);
+                continue;
+            }
+            $subject = trim($datum['subject']) ?: explode("\n", $messages[0]['text'])[0];
+            $people[$datum['agent']] = ['email' => $datum['agent'], 'is_agent' => 1];
+            $people[$datum['user']] = ['email' => $datum['user'], 'is_agent' => 0];
             $ticket = [
+                'status' => 'resolved',
                 'participants' => [$datum['agent'], $datum['user']],
                 'agent' => $datum['user'],
-                'user' => $datum['agent'],
+                'person' => $datum['agent'],
                 'ref' => $datum['ticket_id'],
+                'urgency' => $datum['urgency'],
+                'date_created' => $this->formatter()->getFormattedDate($datum['custom_data528']),
+                'subject' => $subject,
+                'labels' => [$datum['label']],
+                'department' => $datum['department'],
+//                'brand' => $datum['brand_id'],
+                'language' => $datum['language'],
+                'messages' => [
+                ],
             ];
+
+            foreach ($messages as $mIndex => $message) {
+                $ticket['messages'][] = [
+                    'oid' => "t-".$ticket['ref']."-m-".$mIndex,
+                    'person' => $message['type'] === 'question' ? $datum['user'] : $datum['agent'],
+                    'date_created' => $message['date'] ? $this->formatter()->getFormattedDate($message['date']->format('Y-m-d H:i:s')) : null,
+                    'format' => 'html',
+                    'message' => $message['text']
+                ];
+            }
+
+            if($datum['custom_data494']) {
+                array_unshift($ticket['messages'], [
+                    'oid' => "t-".$ticket['ref']."-receiptmemo",
+                    'person' => $datum['agent'],
+                    'format' => 'html',
+                    'is_note' => true,
+                    'date_created' => $ticket['date_created'],
+                    'message' => file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['custom_data494']),
+                ]);
+            }
+
+            $customFields = [];
+            foreach($datum as $i => $datumItem) {
+                if(strpos($i, 'custom_data') !== false) {
+                    $id = str_replace('custom_data', '', $i);
+                    if(isset($this->ticketCustomFields[$id])) {
+                        if($id == 528) {
+                            $datumItem = $this->formatter()->getFormattedDate($datumItem);
+                        }
+                        $customFields[] = [
+                            'name' => $this->ticketCustomFields[$id]->getTitle(),
+                            'value' => $datumItem,
+                        ];
+                    }
+                }
+            }
+            $ticket['custom_fields'] = $customFields;
+
+            $tickets[] = $ticket;
+        }
+
+        foreach($tickets as $ticket) {
+            $this->writer()->writeTicket($ticket['ref'], $ticket);
         }
     }
 
-    protected function collectMessages($path, $possibleDate, $type = 'question')
+    /**
+     *
+     */
+    private function gatherCustomFields()
     {
+        $entityManager            = $this->container->get('doctrine.orm.default_entity_manager');
+        $this->ticketCustomFields = $entityManager->getRepository(CustomDefTicket::class)->getEnabledTopFields();
+    }
+
+    /**
+     * @param        $path
+     * @param        $possibleDate
+     * @param string $type
+     *
+     * @return array
+     */
+    private function collectMessages($path, $possibleDate, $type = 'question')
+    {
+        if(!file_exists($path) || is_dir($path)) {
+            return [];
+        }
         $messages = file_get_contents($path);
         $messages = preg_split('/-{70,}/', $messages);
         $newMessages = [];
@@ -93,6 +194,12 @@ class IsidImporter extends AbstractImporter
         return $newMessages;
     }
 
+    /**
+     * @param $questions
+     * @param $answers
+     *
+     * @return array
+     */
     protected function combineMessages($questions, $answers) {
         usort($questions, [$this, 'sortMessages']);
         usort($answers, [$this, 'sortMessages']);
@@ -101,7 +208,7 @@ class IsidImporter extends AbstractImporter
         $index = 0;
         foreach($questions as $index => $question) {
             $messages[] = $question;
-            if($answers[$index]) {
+            if(isset($answers[$index])) {
                 $messages[] = $answers[$index];
             }
         }
@@ -128,6 +235,12 @@ class IsidImporter extends AbstractImporter
         return $messages;
     }
 
+    /**
+     * @param $m1
+     * @param $m2
+     *
+     * @return int
+     */
     public function sortMessages($m1, $m2) {
         if($m1['date'] && $m2['date']) {
             return $m1['date']->getTimestamp() - $m2['date']->getTimestamp() ? : $m1['index'] - $m2['index'];
@@ -140,5 +253,12 @@ class IsidImporter extends AbstractImporter
                 return $m1['index'] - $m2['index'];
             }
         }
+    }
+
+    /**
+     * @param $datum
+     */
+    private function logEmptyMessages($datum) {
+
     }
 }
