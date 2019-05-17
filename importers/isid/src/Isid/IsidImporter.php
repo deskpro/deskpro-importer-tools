@@ -61,6 +61,19 @@ class IsidImporter extends AbstractImporter
                 $answersPath = sprintf('%s%s%s', $this->config['tickets_path'],DIRECTORY_SEPARATOR, $datum['answer']);
                 $answers = $this->collectMessages($answersPath, $datum['custom_data528'], 'answer');
             }
+            $answersCount = count($answers);
+            $answermemo = [];
+            if($datum['answermemo']) {
+                $answermemo = $this->collectMessages(
+                    sprintf('%s%s%s', $this->config['tickets_path'],DIRECTORY_SEPARATOR, $datum['answermemo']), null,'answer'
+                );
+                foreach($answermemo as &$m) {
+                    $m['index'] += $answersCount;
+                    if($m['date']) {
+                        $answers[] = $m;
+                    }
+                }
+            }
             if($datum['question']) {
                 $questionsPath = sprintf('%s%s%s', $this->config['tickets_path'], DIRECTORY_SEPARATOR, $datum['question']);
                 $questions     = $this->collectMessages($questionsPath, $datum['custom_data528']);
@@ -84,7 +97,7 @@ class IsidImporter extends AbstractImporter
                 'subject' => $subject,
                 'labels' => [$datum['label']],
                 'department' => $datum['department'],
-//                'brand' => $datum['brand_id'],
+                'brand' => $datum['brand_id'],
                 'language' => $datum['language'],
                 'messages' => [
                 ],
@@ -109,6 +122,17 @@ class IsidImporter extends AbstractImporter
                     'date_created' => $ticket['date_created'],
                     'message' => file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['custom_data494']),
                 ]);
+            }
+            foreach($answermemo as $m) {
+                if(!$m['date']) {
+                    $ticket['messages'][] = [
+                        'oid' => "t-".$ticket['ref']."-answermemo",
+                        'person' => $datum['agent'],
+                        'date_created' => null,
+                        'format' => 'html',
+                        'message' => $m['text']
+                    ];
+               }
             }
 
             $customFields = [];
@@ -160,10 +184,12 @@ class IsidImporter extends AbstractImporter
         $messages = file_get_contents($path);
         $messages = preg_split('/-{70,}/', $messages);
         $newMessages = [];
-        try {
-            $possibleDate = new \DateTime($possibleDate);
-        } catch(\Exception $e) {
-            $possibleDate = null;
+        if($possibleDate) {
+            try {
+                $possibleDate = new \DateTime($possibleDate);
+            } catch(\Exception $e) {
+                $possibleDate = null;
+            }
         }
         $prev = null;
         foreach($messages as $index => $message) {
