@@ -285,6 +285,6 @@ class IsidImporter extends AbstractImporter
      * @param $datum
      */
     private function logEmptyMessages($datum) {
-
+        echo sprintf('The ticket #%s has no messages!%s', $datum['ticket_id'], PHP_EOL);
     }
 }
