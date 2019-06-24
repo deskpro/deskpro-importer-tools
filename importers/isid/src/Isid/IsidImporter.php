@@ -113,7 +113,7 @@ class IsidImporter extends AbstractImporter
                 ];
             }
 
-            if($datum['custom_data494']) {
+            if(isset($datum['custom_data494']) && $datum['custom_data494']) {
                 array_unshift($ticket['messages'], [
                     'oid' => "t-".$ticket['ref']."-receiptmemo",
                     'person' => $datum['agent'],
