@@ -2,7 +2,10 @@
 
 namespace DeskPRO\ImporterTools\Importers\Isid;
 
+use Application\DeskPRO\Entity\Brand;
 use Application\DeskPRO\Entity\CustomDefTicket;
+use Application\DeskPRO\Entity\Department;
+use Application\DeskPRO\Entity\Language;
 use DeskPRO\ImporterTools\AbstractImporter;
 
 /**
@@ -19,6 +22,37 @@ class IsidImporter extends AbstractImporter
      * @var array
      */
     private $ticketCustomFields = [];
+
+    /**
+     * @var array
+     */
+    private $languages = [];
+
+    /**
+     * @var array
+     */
+    private $departments = [];
+
+    /**
+     * @var array
+     */
+    private $brands = [];
+
+    /**
+     * @var string
+     */
+    private $defaultLanguage = null;
+
+    /**
+     * @var string
+     */
+    private $defaultDepartment = null;
+
+    /**
+     * @var string
+     */
+    private $defaultBrand = null;
+
 
     /**
      * {@inheritdoc}
@@ -49,6 +83,9 @@ class IsidImporter extends AbstractImporter
     {
 
         $this->gatherCustomFields();
+        $this->gatherLanguages();
+        $this->gatherDepartments();
+        $this->gatherBrands();
 
         $csv = $this->csv()->readFile($this->config['csv_path'], ',', '"');
         $tickets = [];
@@ -89,16 +126,16 @@ class IsidImporter extends AbstractImporter
             $ticket = [
                 'status' => 'resolved',
                 'participants' => [$datum['agent'], $datum['user']],
-                'agent' => $datum['user'],
-                'person' => $datum['agent'],
+                'agent' => $datum['agent'],
+                'person' => $datum['user'],
                 'ref' => $datum['ticket_id'],
                 'urgency' => $datum['urgency'],
                 'date_created' => $this->formatter()->getFormattedDate($datum['custom_data528']),
                 'subject' => $subject,
                 'labels' => [$datum['label']],
-                'department' => $datum['department'],
-                'brand' => $datum['brand_id'],
-                'language' => $datum['language'],
+                'department' => $this->getDepartment($datum['department']),
+                'brand' => $this->getBrand($datum['brand_id']),
+                'language' => $this->getLanguage($datum['language']),
                 'messages' => [
                 ],
             ];
@@ -120,7 +157,7 @@ class IsidImporter extends AbstractImporter
                     'format' => 'html',
                     'is_note' => true,
                     'date_created' => $ticket['date_created'],
-                    'message' => file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['custom_data494']),
+                    'message' => nl2br(file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['custom_data494'])),
                 ]);
             }
             foreach($answermemo as $m) {
@@ -128,19 +165,20 @@ class IsidImporter extends AbstractImporter
                     $ticket['messages'][] = [
                         'oid' => "t-".$ticket['ref']."-answermemo",
                         'person' => $datum['agent'],
-                        'date_created' => null,
+                        'date_created' =>  $ticket['date_created'],
                         'format' => 'html',
-                        'message' => $m['text']
+                        'message' => $m['text'],
+                        'is_note' => true,
                     ];
                }
             }
 
             $customFields = [];
             foreach($datum as $i => $datumItem) {
-                if(strpos($i, 'custom_data') !== false) {
+                if(strpos($i, 'custom_data') !== false && $datumItem) {
                     $id = str_replace('custom_data', '', $i);
                     if(isset($this->ticketCustomFields[$id])) {
-                        if($id == 528) {
+                        if(in_array($this->ticketCustomFields[$id]->getType(), ['datetime', 'date'])) {
                             $datumItem = $this->formatter()->getFormattedDate($datumItem);
                         }
                         $customFields[] = [
@@ -170,6 +208,64 @@ class IsidImporter extends AbstractImporter
     }
 
     /**
+     *
+     */
+    private function gatherLanguages()
+    {
+        $entityManager         = $this->container->get('doctrine.orm.default_entity_manager');
+        $entityRepository      = $entityManager->getRepository(Language::class);
+        $this->languages       = $entityRepository->getTitles();
+        $this->defaultLanguage = $entityRepository->getDefault()->getTitle();
+    }
+
+    /**
+     *
+     */
+    private function gatherBrands()
+    {
+        $entityManager         = $this->container->get('doctrine.orm.default_entity_manager');
+        $entityRepository      = $entityManager->getRepository(Brand::class);
+        $this->brands          = $entityRepository->getNames();
+        $defaultBrandId        = $this->container->get('settings_resolver')->getGlobalSettings()->get('portal.default_brand');
+        $this->defaultBrand    = $this->brands[$defaultBrandId];
+    }
+
+    /**
+     *
+     */
+    private function getBrand($id)
+    {
+        return isset($this->brands[$id]) && $this->brands[$id] ? $this->brands[$id] : $this->defaultBrand;
+    }
+
+    /**
+     * @param $id
+     *
+     * @return mixed|string
+     */
+    private function getLanguage($id) {
+        return isset($this->languages[$id]) && $this->languages[$id] ? $this->languages[$id] : $this->defaultLanguage;
+    }
+
+    /**
+     *
+     */
+    private function gatherDepartments()
+    {
+        $entityManager     = $this->container->get('doctrine.orm.default_entity_manager');
+        $entityRepository  = $entityManager->getRepository(Department::class);
+        $deps              = $entityRepository->getTicketDepartments();
+        foreach($deps as $dep) {
+            $this->departments[$dep->getId()] = $dep->getTitle();
+        }
+        $this->defaultDepartment = $entityRepository->getDefaultDepartment('ticket')->getTitle();
+    }
+
+    private function getDepartment($id) {
+        return isset($this->departments[$id]) && $this->departments[$id] ? $this->departments[$id] : $this->defaultDepartment;
+    }
+
+    /**
      * @param        $path
      * @param        $possibleDate
      * @param string $type
@@ -184,9 +280,11 @@ class IsidImporter extends AbstractImporter
         $messages = file_get_contents($path);
         $messages = preg_split('/-{70,}/', $messages);
         $newMessages = [];
+        $timezone = $this->container->get('settings_resolver')->getGlobalSettings()->get('importer_timezone', 'UTC');
+
         if($possibleDate) {
             try {
-                $possibleDate = new \DateTime($possibleDate);
+                $possibleDate = new \DateTime($possibleDate, new \DateTimeZone($timezone));
             } catch(\Exception $e) {
                 $possibleDate = null;
             }
@@ -199,7 +297,7 @@ class IsidImporter extends AbstractImporter
             preg_match('#(\d{4}/\d{2}/\d{2})(\s\d{2}:\d{2}:\d{2})?#', $message, $matches);
             if(isset($matches[0])) {
                 try {
-                    $date = new \DateTime($matches[0]);
+                    $date = new \DateTime($matches[0], new \DateTimeZone($timezone));
                     if($date->format('H:i:s') === '00:00:00') {
                         $date->modify('+1 day')->modify('-1 sec');
                     }
@@ -209,8 +307,11 @@ class IsidImporter extends AbstractImporter
             } else {
                 $date = $possibleDate;
             }
+            if($date) {
+                $date->setTimezone(new \DateTimeZone('UTC'));
+            }
             $newMessages[] = $prev = [
-                'text' => $message,
+                'text' => nl2br($message),
                 'date' => $date ? : ($prev && isset($prev['date']) ? $prev['date'] : null),
                 'type' => $type,
                 'index' => $index,
