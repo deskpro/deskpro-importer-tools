@@ -150,14 +150,14 @@ class IsidImporter extends AbstractImporter
                 ];
             }
 
-            if(isset($datum['custom_data494']) && $datum['custom_data494']) {
+            if(isset($datum['receiptmemo']) && $datum['receiptmemo']) {
                 array_unshift($ticket['messages'], [
                     'oid' => "t-".$ticket['ref']."-receiptmemo",
                     'person' => $datum['agent'],
                     'format' => 'html',
                     'is_note' => true,
                     'date_created' => $ticket['date_created'],
-                    'message' => nl2br(file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['custom_data494'])),
+                    'message' => nl2br(file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['receiptmemo'])),
                 ]);
             }
             foreach($answermemo as $m) {
