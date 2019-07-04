@@ -191,6 +191,19 @@ class IsidImporter extends AbstractImporter
             }
             $ticket['custom_fields'] = $customFields;
 
+            $dateResolved = null;
+            $reversedMessages = array_reverse($ticket['messages']);
+            foreach($reversedMessages as $message) {
+                if($message['date_created']) {
+                    $dateResolved = $message['date_created'];
+                    break;
+                }
+            }
+            if(!$dateResolved) {
+                $dateResolved = $ticket['date_created'];
+            }
+            $ticket['date_resolved'] = $dateResolved;
+
             $tickets[] = $ticket;
         }
 
