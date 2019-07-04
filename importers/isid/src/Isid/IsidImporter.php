@@ -192,6 +192,33 @@ class IsidImporter extends AbstractImporter
             }
             $ticket['custom_fields'] = $customFields;
 
+            $dateCreated = null;
+            try {
+                $ticketDate = new \DateTime($ticket['date_created']);
+                $ticketDate = $ticketDate->getTimestamp();
+                $dateCreated = $ticket['date_created'];
+            } catch(\Exception $e) {
+                $ticketDate = null;
+            }
+
+            foreach($ticket['messages'] as $message) {
+                if($message['date_created']) {
+                    $messageDate = new \DateTime($message['date_created']);
+                    $messageDate = $messageDate->getTimestamp();
+                    if($ticketDate && $messageDate < $ticketDate) {
+                        $ticketDate = $messageDate;
+                        $dateCreated = $message['date_created'];
+                    } elseif(!$ticketDate) {
+                        $ticketDate = $messageDate;
+                        $dateCreated = $message['date_created'];
+                    }
+                }
+            }
+
+            if($dateCreated) {
+                $ticket['date_created'] = $dateCreated;
+            }
+
             $dateResolved = null;
             $reversedMessages = array_reverse($ticket['messages']);
             foreach($reversedMessages as $message) {
