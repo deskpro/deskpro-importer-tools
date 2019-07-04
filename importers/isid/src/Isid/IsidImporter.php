@@ -125,7 +125,6 @@ class IsidImporter extends AbstractImporter
             $people[$datum['user']] = ['email' => $datum['user'], 'is_agent' => 0];
             $ticket = [
                 'status' => 'resolved',
-                'participants' => [$datum['agent'], $datum['user']],
                 'agent' => $datum['agent'],
                 'person' => $datum['user'],
                 'ref' => $datum['ticket_id'],
