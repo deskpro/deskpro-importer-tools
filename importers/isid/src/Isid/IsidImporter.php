@@ -7,6 +7,7 @@ use Application\DeskPRO\Entity\CustomDefTicket;
 use Application\DeskPRO\Entity\Department;
 use Application\DeskPRO\Entity\Language;
 use DeskPRO\ImporterTools\AbstractImporter;
+use Orb\Util\Arrays;
 
 /**
  * Class CustomImporter.
@@ -107,6 +108,7 @@ class IsidImporter extends AbstractImporter
                 foreach($answermemo as &$m) {
                     $m['index'] += $answersCount;
                     if($m['date']) {
+                        $m['is_note'] = true;
                         $answers[] = $m;
                     }
                 }
@@ -278,6 +280,7 @@ class IsidImporter extends AbstractImporter
         }
         $messages = file_get_contents($path);
         $messages = preg_split('/-{70,}/', $messages);
+        $messages = Arrays::removeEmptyString($messages);
         $newMessages = [];
         $timezone = $this->container->get('settings_resolver')->getGlobalSettings()->get('importer_timezone', 'UTC');
 
