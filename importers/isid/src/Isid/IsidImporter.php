@@ -144,7 +144,7 @@ class IsidImporter extends AbstractImporter
                     'oid' => "t-".$ticket['ref']."-m-".$mIndex,
                     'person' => $message['type'] === 'question' ? $datum['user'] : $datum['agent'],
                     'date_created' => $message['date'] ? $this->formatter()->getFormattedDate($message['date']->format('Y-m-d H:i:s')) : null,
-                    'format' => 'html',
+                    'format' => 'text',
                     'message' => $message['text']
                 ];
             }
@@ -153,10 +153,10 @@ class IsidImporter extends AbstractImporter
                 array_unshift($ticket['messages'], [
                     'oid' => "t-".$ticket['ref']."-receiptmemo",
                     'person' => $datum['agent'],
-                    'format' => 'html',
+                    'format' => 'text',
                     'is_note' => true,
                     'date_created' => $ticket['date_created'],
-                    'message' => nl2br(file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['receiptmemo'])),
+                    'message' => file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['receiptmemo']),
                 ]);
             }
             foreach($answermemo as $m) {
@@ -165,7 +165,7 @@ class IsidImporter extends AbstractImporter
                         'oid' => "t-".$ticket['ref']."-answermemo",
                         'person' => $datum['agent'],
                         'date_created' =>  $ticket['date_created'],
-                        'format' => 'html',
+                        'format' => 'text',
                         'message' => $m['text'],
                         'is_note' => true,
                     ];
@@ -310,7 +310,7 @@ class IsidImporter extends AbstractImporter
                 $date->setTimezone(new \DateTimeZone('UTC'));
             }
             $newMessages[] = $prev = [
-                'text' => nl2br($message),
+                'text' => $message,
                 'date' => $date ? : ($prev && isset($prev['date']) ? $prev['date'] : null),
                 'type' => $type,
                 'index' => $index,
