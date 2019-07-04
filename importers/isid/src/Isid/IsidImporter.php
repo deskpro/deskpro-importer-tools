@@ -147,7 +147,8 @@ class IsidImporter extends AbstractImporter
                     'person' => $message['type'] === 'question' ? $datum['user'] : $datum['agent'],
                     'date_created' => $message['date'] ? $this->formatter()->getFormattedDate($message['date']->format('Y-m-d H:i:s')) : null,
                     'format' => 'text',
-                    'message' => $message['text']
+                    'message' => $message['text'],
+                    'is_note' => isset($message['is_note']) ? $message['is_note'] : false,
                 ];
             }
 
