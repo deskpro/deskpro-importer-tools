@@ -354,6 +354,17 @@ class IsidImporter extends AbstractImporter
             if($date) {
                 $date->setTimezone(new \DateTimeZone('UTC'));
             }
+
+            $parts = explode("\n", $message);
+            $lastIndex = count($parts) - 1;
+            if(preg_match('#(\d{4}/\d{2}/\d{2})(\s\d{2}:\d{2}:\d{2})?\sお客様に回答メールを送信しました。#', $parts[$lastIndex])) {
+                unset($parts[$lastIndex]);
+            }
+            if(preg_match('#(\d{4}/\d{2}/\d{2})(\s\d{2}:\d{2}:\d{2})?#', $parts[0])) {
+                unset($parts[0]);
+            }
+            $message = implode($parts, "\n");
+
             $newMessages[] = $prev = [
                 'text' => $message,
                 'date' => $date ? : ($prev && isset($prev['date']) ? $prev['date'] : null),
