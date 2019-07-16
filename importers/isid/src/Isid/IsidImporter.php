@@ -118,6 +118,7 @@ class IsidImporter extends AbstractImporter
                 $questions     = $this->collectMessages($questionsPath, $datum['custom_data528']);
             }
             $messages = $this->combineMessages($questions, $answers);
+
             if(!$messages) {
                 $this->logEmptyMessages($datum);
                 continue;
@@ -145,7 +146,7 @@ class IsidImporter extends AbstractImporter
                 $ticket['messages'][] = [
                     'oid' => "t-".$ticket['ref']."-m-".$mIndex,
                     'person' => $message['type'] === 'question' ? $datum['user'] : $datum['agent'],
-                    'date_created' => $message['date'],
+                    'date_created' => $message['date'] ? $message['date']->format('c') : null,
                     'format' => 'text',
                     'message' => $message['text'],
                     'is_note' => isset($message['is_note']) ? $message['is_note'] : false,
@@ -177,7 +178,7 @@ class IsidImporter extends AbstractImporter
 
             $customFields = [];
             foreach($datum as $i => $datumItem) {
-                if(strpos($i, 'custom_data') !== false && $datumItem) {
+                if(strpos($i, 'custom_data') !== false && trim($datumItem)) {
                     $id = str_replace('custom_data', '', $i);
                     if(isset($this->ticketCustomFields[$id])) {
                         if(in_array($this->ticketCustomFields[$id]->getType(), ['datetime', 'date'])) {
