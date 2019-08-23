@@ -26,7 +26,10 @@ class CustomImporter extends AbstractImporter
     /**
      * {@inheritdoc}
      */
-    public function runImport()
+    public function getImportSteps()
     {
+        return [
+            //
+        ];
     }
 }
