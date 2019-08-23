@@ -56,9 +56,9 @@ class SpiceworksImporter extends AbstractImporter
         ];
     }
 
-    //--------------------
-    // People
-    //--------------------
+    //---------------------
+    // Import step handlers
+    //---------------------
 
     /**
      * @return void
@@ -93,10 +93,6 @@ SQL
             }
         }
     }
-
-    //--------------------
-    // Tickets
-    //--------------------
 
     /**
      * @return void

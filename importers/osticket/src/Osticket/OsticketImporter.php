@@ -68,9 +68,9 @@ class OsticketImporter extends AbstractImporter
         ];
     }
 
-    //--------------------
-    // Custom definitions
-    //--------------------
+    //---------------------
+    // Import step handlers
+    //---------------------
 
     /**
      * @return void
@@ -108,10 +108,6 @@ class OsticketImporter extends AbstractImporter
         }
     }
 
-    //--------------------
-    // Organizations
-    //--------------------
-
     /**
      * @return void
      */
@@ -131,10 +127,6 @@ class OsticketImporter extends AbstractImporter
             $this->writer()->writeOrganization($n['id'], $organization);
         }
     }
-
-    //--------------------
-    // People
-    //--------------------
 
     /**
      * @return void
@@ -204,10 +196,6 @@ class OsticketImporter extends AbstractImporter
             $this->writer()->writeUser($n['id'], $user);
         }
     }
-
-    //--------------------
-    // Tickets
-    //--------------------
 
     /**
      * @return void
@@ -295,10 +283,6 @@ class OsticketImporter extends AbstractImporter
         }
     }
 
-    //--------------------
-    // Article categories
-    //--------------------
-
     /**
      * @return void
      */
@@ -314,10 +298,6 @@ class OsticketImporter extends AbstractImporter
             ]);
         }
     }
-
-    //--------------------
-    // Articles
-    //--------------------
 
     /**
      * @return void
@@ -337,10 +317,6 @@ class OsticketImporter extends AbstractImporter
             ]);
         }
     }
-
-    //--------------------
-    // Settings
-    //--------------------
 
     /**
      * @return void

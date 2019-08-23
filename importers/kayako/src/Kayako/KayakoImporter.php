@@ -53,9 +53,9 @@ class KayakoImporter extends AbstractImporter
         ];
     }
 
-    //--------------------
-    // Organizations
-    //--------------------
+    //---------------------
+    // Import step handlers
+    //---------------------
 
     /**
      * @return void
@@ -109,10 +109,6 @@ class KayakoImporter extends AbstractImporter
             }
         }
     }
-
-    //--------------------
-    // People
-    //--------------------
 
     /**
      * @return void
@@ -241,10 +237,6 @@ class KayakoImporter extends AbstractImporter
             $this->writer()->writeUser($userId, $person);
         }
     }
-
-    //--------------------
-    // Tickets
-    //--------------------
 
     /**
      * @return void
@@ -472,10 +464,6 @@ class KayakoImporter extends AbstractImporter
         }
     }
 
-    //--------------------
-    // Article categories
-    //--------------------
-
     /**
      * @return void
      */
@@ -487,10 +475,6 @@ class KayakoImporter extends AbstractImporter
             $this->writer()->writeArticleCategory($category['oid'], $category);
         }
     }
-
-    //--------------------
-    // Articles
-    //--------------------
 
     /**
      * @return void
@@ -551,10 +535,6 @@ class KayakoImporter extends AbstractImporter
             $this->writer()->writeArticle($n['kbarticleid'], $article);
         }
     }
-
-    //--------------------
-    // News
-    //--------------------
 
     /**
      * @return void
@@ -640,10 +620,6 @@ class KayakoImporter extends AbstractImporter
         }
     }
 
-    //--------------------
-    // Chats
-    //--------------------
-
     /**
      * @return void
      */
@@ -702,10 +678,6 @@ class KayakoImporter extends AbstractImporter
             }
         }
     }
-
-    //--------------------
-    // Settings
-    //--------------------
 
     /**
      * @return void
