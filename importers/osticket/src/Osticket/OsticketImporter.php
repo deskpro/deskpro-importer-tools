@@ -15,6 +15,17 @@ class OsticketImporter extends AbstractImporter
     private $tablePrefix;
 
     /**
+     * @var array
+     */
+    private $widgetTypeMapping = [
+        'text'     => 'text',
+        'memo'     => 'textarea',
+        'datetime' => 'datetime',
+        'choices'  => 'choice',
+        'bool'     => 'toggle',
+    ];
+
+    /**
      * {@inheritdoc}
      */
     public function init(array $config)
@@ -42,234 +53,69 @@ class OsticketImporter extends AbstractImporter
     /**
      * {@inheritdoc}
      */
-    public function runImport()
+    protected function getImportSteps()
     {
-        //--------------------
-        // Attachments loader
-        //--------------------
-
-        $getBlobData = function ($fileId) {
-            $file = $this->db()->findOne("SELECT * FROM {$this->tablePrefix}file WHERE id = :id", ['id' => $fileId]);
-            if (!$file) {
-                return false;
-            }
-
-            $fileChunks = $this->db()->findAll("SELECT * FROM {$this->tablePrefix}file_chunk WHERE file_id = :file_id", [
-                'file_id' => $file['id'],
-            ]);
-
-            $blobData = '';
-            foreach ($fileChunks as $fileChunk) {
-                $blobData .= $fileChunk['filedata'];
-            }
-
-            if (!$blobData) {
-                return false;
-            }
-
-            return [
-                'oid'          => $file['id'],
-                'file_name'    => $file['name'],
-                'content_type' => $file['type'],
-                'blob_data'    => base64_encode($blobData),
-            ];
-        };
-
-        $getAttachments = function ($id, $type) use ($getBlobData) {
-            $data = $this->db()->findAll("SELECT * FROM {$this->tablePrefix}attachment WHERE type = :type AND object_id = :id", [
-                'id'   => $id,
-                'type' => $type,
-            ]);
-
-            $attachments = [];
-            foreach ($data as $attachment) {
-                $blobData = $getBlobData($attachment['file_id']);
-                if ($blobData) {
-                    $attachments[] = $blobData;
-                }
-            }
-
-            return $attachments;
-        };
-
-        //--------------------
-        // Form mapper
-        //--------------------
-
-        $mapFormFields = function ($id, $type, array &$object) {
-            // custom and contact data
-            $data = $this->db()->findAll(<<<SQL
-                SELECT f.id, v.value, f.type, f.name, f.label
-                FROM {$this->tablePrefix}form_entry_values v
-                JOIN {$this->tablePrefix}form_entry e ON v.entry_id = e.id
-                JOIN {$this->tablePrefix}form_field f ON v.field_id = f.id
-                WHERE e.object_type = :type AND e.object_id = :id
-SQL
-                , [
-                    'id'   => $id,
-                    'type' => $type,
-                ]
-            );
-
-            foreach ($data as $field) {
-                $value = $field['value'];
-                if (!$value) {
-                    continue;
-                }
-
-                switch ($field['type']) {
-                    case 'text':
-                        if ($field['name'] === 'website') {
-                            if ($websiteUrl = $this->formatter()->getFormattedUrl($value)) {
-                                $object['contact_data']['website'][] = [
-                                    'url' => $websiteUrl,
-                                ];
-                            }
-                            // built-in ticket field for subject
-                        } elseif ($field['name'] === 'subject' && $type === 'T') {
-                            $object['subject'] = $value;
-                        } else {
-                            $object['custom_fields'][] = [
-                                'name'  => $field['label'],
-                                'value' => $value,
-                            ];
-                        }
-                        break;
-                    case 'memo':
-                        if ($field['name'] === 'address') {
-                            // todo
-                        } else {
-                            $object['custom_fields'][] = [
-                                'oid'   => $field['id'],
-                                'value' => $value,
-                            ];
-                        }
-                        break;
-                    case 'choices':
-                        $value = json_decode($value, true);
-                        $value = reset($value);
-
-                        $object['custom_fields'][] = [
-                            'oid'   => $field['id'],
-                            'value' => $value,
-                        ];
-                        break;
-                    case 'phone':
-                        if ($phone = $this->formatter()->getFormattedNumber($value)) {
-                            $object['contact_data']['phone'][] = [
-                                'number' => $phone,
-                                'type'   => 'phone',
-                            ];
-                        }
-                        break;
-                    case 'datetime':
-                        $object['custom_fields'][] = [
-                            'oid'   => $field['id'],
-                            'value' => $this->formatter()->getFormattedDate($value),
-                        ];
-                        break;
-                    default:
-                        $object['custom_fields'][] = [
-                            'oid'   => $field['id'],
-                            'value' => $value,
-                        ];
-                        break;
-                }
-            }
-        };
-
-        //--------------------
-        // Custom definitions
-        //--------------------
-
-        $widgetTypeMapping = [
-            'text'     => 'text',
-            'memo'     => 'textarea',
-            'datetime' => 'datetime',
-            'choices'  => 'choice',
-            'bool'     => 'toggle',
+        return [
+            'organization_custom_def',
+            'person_custom_def',
+            'ticket_custom_def',
+            'organization',
+            'person',
+            'ticket',
+            'article_category',
+            'article',
+            'setting',
         ];
+    }
 
-        $getFormFields = function ($type) use ($widgetTypeMapping) {
-            $data = $this->db()->findAll(<<<SQL
-                SELECT ff.*
-                FROM {$this->tablePrefix}form_field ff
-                JOIN {$this->tablePrefix}form f ON ff.form_id = f.id
-                WHERE f.type = :type
-SQL
-                , [
-                    'type' => $type,
-                ]
-            );
+    //--------------------
+    // Custom definitions
+    //--------------------
 
-            $customDefs = [];
-            foreach ($data as $n) {
-                // exclude contact data fields
-                if ($n['type'] === 'phone') {
-                    continue;
-                }
-                if (in_array($n['name'], ['website', 'address'])) {
-                    continue;
-                }
-
-                // exclude ticket subject field
-                if ($n['name'] === 'subject' && $type === 'T') {
-                    continue;
-                }
-
-                $widgetType = 'text';
-                if (isset($widgetTypeMapping[$n['type']])) {
-                    $widgetType = $widgetTypeMapping[$n['type']];
-                }
-
-                $customDef = [
-                    'title'       => $n['label'],
-                    'widget_type' => $widgetType,
-                    'is_agent_field' => $n['private'],
-                ];
-
-                if ($n['required']) {
-                    $customDef['options']['required'] = true;
-                }
-
-                // export field choices
-                if ($widgetType === 'choice') {
-                    $configuration = json_decode($n['configuration'], true);
-                    if (isset($configuration['choices'])) {
-                        $configuration['choices'] = preg_split('/\r\n/', $configuration['choices']);
-                        foreach ($configuration['choices'] as $choice) {
-                            $customDef['choices'][] = [
-                                'title' => $choice,
-                            ];
-                        }
-                    }
-                }
-
-                $customDefs[$n['id']] = $customDef;
-            }
-
-            return $customDefs;
-        };
-
+    /**
+     * @return void
+     */
+    protected function organizationCustomDefImport()
+    {
         $this->progress()->startOrganizationCustomDefImport();
-        foreach ($getFormFields('O') as $id => $formField) {
+
+        foreach ($this->getFormFields('O') as $id => $formField) {
             $this->writer()->writeOrganizationCustomDef($id, $formField);
         }
+    }
 
+    /**
+     * @return void
+     */
+    protected function personCustomDefImport()
+    {
         $this->progress()->startPersonCustomDefImport();
-        foreach ($getFormFields('U') as $id => $formField) {
+
+        foreach ($this->getFormFields('U') as $id => $formField) {
             $this->writer()->writePersonCustomDef($id, $formField);
         }
+    }
 
+    /**
+     * @return void
+     */
+    protected function ticketCustomDefImport()
+    {
         $this->progress()->startTicketCustomDefImport();
-        foreach ($getFormFields('T') as $id => $formField) {
+
+        foreach ($this->getFormFields('T') as $id => $formField) {
             $this->writer()->writeTicketCustomDef($id, $formField);
         }
+    }
 
-        //--------------------
-        // Organizations
-        //--------------------
+    //--------------------
+    // Organizations
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function organizationImport() {
         $this->progress()->startOrganizationImport();
         $pager = $this->db()->getPager("SELECT * FROM {$this->tablePrefix}organization");
 
@@ -280,16 +126,21 @@ SQL
             ];
 
             // custom and contact data
-            $mapFormFields($n['id'], 'O', $organization);
+            $this->mapFormFields($n['id'], 'O', $organization);
 
             $this->writer()->writeOrganization($n['id'], $organization);
         }
+    }
 
+    //--------------------
+    // People
+    //--------------------
 
-        //--------------------
-        // People
-        //--------------------
-
+    /**
+     * @return void
+     */
+    protected function personImport()
+    {
         $this->progress()->startPersonImport();
         $pager = $this->db()->getPager("SELECT * FROM {$this->tablePrefix}staff");
 
@@ -348,15 +199,21 @@ SQL
             }
 
             // custom and contact data
-            $mapFormFields($n['id'], 'U', $user);
+            $this->mapFormFields($n['id'], 'U', $user);
 
             $this->writer()->writeUser($n['id'], $user);
         }
+    }
 
-        //--------------------
-        // Tickets
-        //--------------------
+    //--------------------
+    // Tickets
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function ticketImport()
+    {
         $this->progress()->startTicketImport();
         $pager = $this->db()->getPager("SELECT * FROM {$this->tablePrefix}ticket");
 
@@ -402,12 +259,13 @@ SQL
             }
 
             // custom and contact data
-            $mapFormFields($n['ticket_id'], 'T', $ticket);
+            $this->mapFormFields($n['ticket_id'], 'T', $ticket);
 
             // messages
-            $messagesPager = $this->db()->getPager("SELECT * FROM {$this->tablePrefix}ticket_thread WHERE ticket_id = :ticket_id", [
-                'ticket_id' => $n['ticket_id']
-            ]);
+            $messagesPager = $this->db()
+                ->getPager("SELECT * FROM {$this->tablePrefix}ticket_thread WHERE ticket_id = :ticket_id", [
+                    'ticket_id' => $n['ticket_id']
+                ]);
 
             foreach ($messagesPager as $m) {
                 $message = [
@@ -418,12 +276,13 @@ SQL
                 ];
 
                 // message attachments
-                $messageAttachments = $this->db()->findAll("SELECT * FROM {$this->tablePrefix}ticket_attachment WHERE ref_id = :message_id", [
-                    'message_id' => $m['id'],
-                ]);
+                $messageAttachments = $this->db()
+                    ->findAll("SELECT * FROM {$this->tablePrefix}ticket_attachment WHERE ref_id = :message_id", [
+                        'message_id' => $m['id'],
+                    ]);
 
                 foreach ($messageAttachments as $attachment) {
-                    $blobData = $getBlobData($attachment['file_id']);
+                    $blobData = $this->getBlobData($attachment['file_id']);
                     if ($blobData) {
                         $message['attachments'][] = $blobData;
                     }
@@ -434,11 +293,17 @@ SQL
 
             $this->writer()->writeTicket($n['ticket_id'], $ticket);
         }
+    }
 
-        //--------------------
-        // Article categories
-        //--------------------
+    //--------------------
+    // Article categories
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function articleCategoryImport()
+    {
         $this->progress()->startArticleCategoryImport();
         $pager = $this->db()->getPager("SELECT * FROM {$this->tablePrefix}faq_category");
 
@@ -448,11 +313,17 @@ SQL
                 'is_agent' => !$n['ispublic'],
             ]);
         }
+    }
 
-        //--------------------
-        // Articles
-        //--------------------
+    //--------------------
+    // Articles
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function articleImport()
+    {
         $this->progress()->startArticleImport();
         $pager = $this->db()->getPager("SELECT * FROM {$this->tablePrefix}faq");
 
@@ -462,24 +333,31 @@ SQL
                 'content'     => $n['answer'],
                 'categories'  => [$n['category_id']],
                 'status'      => $n['ispublished'] ? 'published' : 'hidden.unpublished',
-                'attachments' => $getAttachments($n['faq_id'], 'F'),
+                'attachments' => $this->getAttachments($n['faq_id'], 'F'),
             ]);
         }
+    }
 
-        //--------------------
-        // Settings
-        //--------------------
+    //--------------------
+    // Settings
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function settingImport()
+    {
         $this->progress()->startSettingImport();
         $settingMapping = [
             'helpdesk_url'   => 'core.deskpro_url',
             'helpdesk_title' => 'core.deskpro_name',
         ];
 
-        $pager = $this->db()->getPager("SELECT * FROM {$this->tablePrefix}config WHERE namespace = 'core' AND `key` IN (:setting_names)", [
-            'section'       => 'settings',
-            'setting_names' => array_keys($settingMapping),
-        ]);
+        $pager = $this->db()
+            ->getPager("SELECT * FROM {$this->tablePrefix}config WHERE namespace = 'core' AND `key` IN (:setting_names)", [
+                'section'       => 'settings',
+                'setting_names' => array_keys($settingMapping),
+            ]);
 
         foreach ($pager as $n) {
             $this->writer()->writeSetting($n['id'], [
@@ -487,5 +365,226 @@ SQL
                 'value' => $n['value'],
             ]);
         }
+    }
+
+    //--------------------
+    // Helpers
+    //--------------------
+
+    /**
+     * @param string|int $fileId
+     *
+     * @return bool|array
+     */
+    protected function getBlobData($fileId)
+    {
+        $file = $this->db()->findOne("SELECT * FROM {$this->tablePrefix}file WHERE id = :id", ['id' => $fileId]);
+        if (!$file) {
+            return false;
+        }
+
+        $fileChunks = $this->db()->findAll("SELECT * FROM {$this->tablePrefix}file_chunk WHERE file_id = :file_id", [
+            'file_id' => $file['id'],
+        ]);
+
+        $blobData = '';
+        foreach ($fileChunks as $fileChunk) {
+            $blobData .= $fileChunk['filedata'];
+        }
+
+        if (!$blobData) {
+            return false;
+        }
+
+        return [
+            'oid'          => $file['id'],
+            'file_name'    => $file['name'],
+            'content_type' => $file['type'],
+            'blob_data'    => base64_encode($blobData),
+        ];
+    }
+
+    /**
+     * @param int|string $id
+     * @param string     $type
+     *
+     * @return array
+     */
+    protected function getAttachments($id, $type)
+    {
+        $data = $this->db()
+            ->findAll("SELECT * FROM {$this->tablePrefix}attachment WHERE type = :type AND object_id = :id", [
+                'id'   => $id,
+                'type' => $type,
+            ]);
+
+        $attachments = [];
+        foreach ($data as $attachment) {
+            $blobData = $this->getBlobData($attachment['file_id']);
+            if ($blobData) {
+                $attachments[] = $blobData;
+            }
+        }
+
+        return $attachments;
+    }
+
+    /**
+     * @param int|string $id
+     * @param string     $type
+     * @param array      $object
+     *
+     * @return void
+     */
+    protected function mapFormFields($id, $type, array &$object)
+    {
+        // custom and contact data
+        $data = $this->db()->findAll(<<<SQL
+                SELECT f.id, v.value, f.type, f.name, f.label
+                FROM {$this->tablePrefix}form_entry_values v
+                JOIN {$this->tablePrefix}form_entry e ON v.entry_id = e.id
+                JOIN {$this->tablePrefix}form_field f ON v.field_id = f.id
+                WHERE e.object_type = :type AND e.object_id = :id
+SQL
+            , [
+                'id'   => $id,
+                'type' => $type,
+            ]
+        );
+
+        foreach ($data as $field) {
+            $value = $field['value'];
+            if (!$value) {
+                continue;
+            }
+
+            switch ($field['type']) {
+                case 'text':
+                    if ($field['name'] === 'website') {
+                        if ($websiteUrl = $this->formatter()->getFormattedUrl($value)) {
+                            $object['contact_data']['website'][] = [
+                                'url' => $websiteUrl,
+                            ];
+                        }
+                        // built-in ticket field for subject
+                    } elseif ($field['name'] === 'subject' && $type === 'T') {
+                        $object['subject'] = $value;
+                    } else {
+                        $object['custom_fields'][] = [
+                            'name'  => $field['label'],
+                            'value' => $value,
+                        ];
+                    }
+                    break;
+                case 'memo':
+                    if ($field['name'] === 'address') {
+                        // todo
+                    } else {
+                        $object['custom_fields'][] = [
+                            'oid'   => $field['id'],
+                            'value' => $value,
+                        ];
+                    }
+                    break;
+                case 'choices':
+                    $value = json_decode($value, true);
+                    $value = reset($value);
+
+                    $object['custom_fields'][] = [
+                        'oid'   => $field['id'],
+                        'value' => $value,
+                    ];
+                    break;
+                case 'phone':
+                    if ($phone = $this->formatter()->getFormattedNumber($value)) {
+                        $object['contact_data']['phone'][] = [
+                            'number' => $phone,
+                            'type'   => 'phone',
+                        ];
+                    }
+                    break;
+                case 'datetime':
+                    $object['custom_fields'][] = [
+                        'oid'   => $field['id'],
+                        'value' => $this->formatter()->getFormattedDate($value),
+                    ];
+                    break;
+                default:
+                    $object['custom_fields'][] = [
+                        'oid'   => $field['id'],
+                        'value' => $value,
+                    ];
+                    break;
+            }
+        }
+    }
+
+    /**
+     * @param string $type
+     *
+     * @return array
+     */
+    protected function getFormFields($type)
+    {
+        $data = $this->db()->findAll(
+            <<<SQL
+                SELECT ff.*
+                FROM {$this->tablePrefix}form_field ff
+                JOIN {$this->tablePrefix}form f ON ff.form_id = f.id
+                WHERE f.type = :type
+SQL
+            ,
+            [
+                'type' => $type,
+            ]
+        );
+
+        $customDefs = [];
+        foreach ($data as $n) {
+            // exclude contact data fields
+            if ($n['type'] === 'phone') {
+                continue;
+            }
+            if (in_array($n['name'], ['website', 'address'])) {
+                continue;
+            }
+
+            // exclude ticket subject field
+            if ($n['name'] === 'subject' && $type === 'T') {
+                continue;
+            }
+
+            $widgetType = 'text';
+            if (isset($this->widgetTypeMapping[$n['type']])) {
+                $widgetType = $this->widgetTypeMapping[$n['type']];
+            }
+
+            $customDef = [
+                'title'          => $n['label'],
+                'widget_type'    => $widgetType,
+                'is_agent_field' => $n['private'],
+            ];
+
+            if ($n['required']) {
+                $customDef['options']['required'] = true;
+            }
+
+            // export field choices
+            if ($widgetType === 'choice') {
+                $configuration = json_decode($n['configuration'], true);
+                if (isset($configuration['choices'])) {
+                    $configuration['choices'] = preg_split('/\r\n/', $configuration['choices']);
+                    foreach ($configuration['choices'] as $choice) {
+                        $customDef['choices'][] = [
+                            'title' => $choice,
+                        ];
+                    }
+                }
+            }
+
+            $customDefs[$n['id']] = $customDef;
+        }
+
+        return $customDefs;
     }
 }
