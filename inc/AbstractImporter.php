@@ -28,6 +28,9 @@
 
 namespace DeskPRO\ImporterTools;
 
+use Application\DeskPRO\Entity\Job;
+use DeskPRO\Component\Util\StringUtils;
+use DeskPRO\ImporterTools\Exceptions\ImportProgressException;
 use DeskPRO\ImporterTools\Helpers\AttachmentHelper;
 use DeskPRO\ImporterTools\Helpers\CsvHelper;
 use DeskPRO\ImporterTools\Helpers\DbHelper;
@@ -37,6 +40,7 @@ use DeskPRO\ImporterTools\Helpers\ProgressHelper;
 use DeskPRO\ImporterTools\Helpers\WriteHelper;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Intl\Exception\MethodNotImplementedException;
 
 /**
  * Class AbstractImporter.
@@ -59,6 +63,11 @@ abstract class AbstractImporter implements ImporterInterface
     protected $helpers;
 
     /**
+     * @var Job
+     */
+    protected $job;
+
+    /**
      * Constructor.
      *
      * @param LoggerInterface    $logger
@@ -71,6 +80,35 @@ abstract class AbstractImporter implements ImporterInterface
     }
 
     /**
+     * @return void
+     *
+     * @throws ImportProgressException
+     */
+    public function runImport() {
+        if ($this->job instanceof Job) {
+            $importedSteps = $this->job->getDataKey('imported_steps');
+        }
+
+        foreach ($this->getImportSteps() as $step) {
+            $method = StringUtils::toCamelCase($step).'Import';
+            try {
+                if (!method_exists($this, $method)) {
+                    throw new MethodNotImplementedException($step);
+                }
+
+                if (isset($importedSteps) && in_array($step, $importedSteps, true)) {
+                    continue;
+                }
+
+                $this->$method();
+            } catch (\Exception $exception) {
+                $this->logger->error($exception->getMessage());
+                throw new ImportProgressException($step, $exception);
+            }
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function addHelper($helper)
@@ -79,6 +117,19 @@ abstract class AbstractImporter implements ImporterInterface
 
         return $this;
     }
+
+    /**
+     * @param Job $job
+     */
+    public function setJob(Job $job)
+    {
+        $this->job = $job;
+    }
+
+    /**
+     * @return array
+     */
+    abstract protected function getImportSteps();
 
     /**
      * @param string $class
