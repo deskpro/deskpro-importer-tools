@@ -48,12 +48,23 @@ class SpiceworksImporter extends AbstractImporter
     /**
      * {@inheritdoc}
      */
-    public function runImport()
+    protected function getImportSteps()
     {
-        //--------------------
-        // Users
-        //--------------------
+        return [
+            'person',
+            'ticket',
+        ];
+    }
 
+    //--------------------
+    // People
+    //--------------------
+
+    /**
+     * @return void
+     */
+    protected function personImport()
+    {
         $this->progress()->startPersonImport();
         $pager = $this->db()->getPager(<<<SQL
             SELECT
@@ -81,11 +92,17 @@ SQL
                 $this->writer()->writeUser($n['id'], $person, false);
             }
         }
+    }
 
-        //--------------------
-        // Tickets and messages
-        //--------------------
+    //--------------------
+    // Tickets
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function ticketImport()
+    {
         $this->progress()->startTicketImport();
         $pager = $this->db()->getPager(<<<SQL
             SELECT
