@@ -10,6 +10,13 @@ use DeskPRO\ImporterTools\AbstractImporter;
 class KayakoImporter extends AbstractImporter
 {
     /**
+     * We can have end-user and agent with same email address so prepare mapping their ids mapping by email
+     *
+     * @var array
+     */
+    private $userAgentsMapping = [];
+
+    /**
      * {@inheritdoc}
      */
     public function init(array $config)
@@ -33,12 +40,27 @@ class KayakoImporter extends AbstractImporter
     /**
      * {@inheritdoc}
      */
-    public function runImport()
+    protected function getImportSteps()
     {
-        //--------------------
-        // Organizations
-        //--------------------
+        return [
+            'organization',
+            'person',
+            'ticket',
+            'article_category',
+            'article',
+            'news',
+            'setting',
+        ];
+    }
 
+    //--------------------
+    // Organizations
+    //--------------------
+
+    /**
+     * @return void
+     */
+    protected function organizationImport() {
         $this->progress()->startOrganizationImport();
 
         if ($this->db()->tableExists('swuserorganizations')) {
@@ -86,12 +108,17 @@ class KayakoImporter extends AbstractImporter
                 $this->writer()->writeOrganization($n['userorganizationid'], $organization);
             }
         }
+    }
 
+    //--------------------
+    // People
+    //--------------------
 
-        //--------------------
-        // People
-        //--------------------
-
+    /**
+     * @return void
+     */
+    protected function personImport()
+    {
         $this->progress()->startPersonImport();
 
         $staffEmailsMapping = [];
@@ -111,7 +138,6 @@ class KayakoImporter extends AbstractImporter
             }
         }
 
-
         $pager = $this->db()->getPager('SELECT * FROM swstaff');
         foreach ($pager as $n) {
             $staffId = $n['staffid'];
@@ -123,7 +149,9 @@ class KayakoImporter extends AbstractImporter
             $person = [
                 'name'        => $n['fullname'],
                 'emails'      => [$email],
-                'is_disabled' => isset($n['isenabled']) ? !$n['isenabled'] : (isset($n['enabled']) ? !$n['enabled'] : false),
+                'is_disabled' => isset($n['isenabled'])
+                    ? !$n['isenabled']
+                    : (isset($n['enabled']) ? !$n['enabled'] : false),
             ];
 
             if ($n['staffgroupid']) {
@@ -151,18 +179,17 @@ class KayakoImporter extends AbstractImporter
             }
         }
 
-        // we can have end-user and agent with same email address so prepare mapping their ids mapping by email
-        $userAgentsMapping = [];
-
         $pager = $this->db()->getPager('SELECT * FROM swusers');
         foreach ($pager as $n) {
             $userId = $n['userid'];
 
             $userEmails = [];
             if ($this->db()->columnExists('swuseremails', 'linktypeid')) {
-                $emailsRows = $this->db()->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $userId]);
+                $emailsRows = $this->db()
+                    ->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $userId]);
             } else {
-                $emailsRows = $this->db()->findAll('SELECT * FROM swuseremails WHERE userid = :user_id', ['user_id' => $userId]);
+                $emailsRows = $this->db()
+                    ->findAll('SELECT * FROM swuseremails WHERE userid = :user_id', ['user_id' => $userId]);
             }
 
             foreach ($emailsRows as $emailsRow) {
@@ -172,7 +199,7 @@ class KayakoImporter extends AbstractImporter
 
                     // check for agent with the same email address
                     if (isset($staffEmailsMapping[$email])) {
-                        $userAgentsMapping[$userId] = $staffEmailsMapping[$email];
+                        $this->userAgentsMapping[$userId] = $staffEmailsMapping[$email];
 
                         // ignore writing user as we already have the agent with this email address
                         continue 2;
@@ -213,11 +240,17 @@ class KayakoImporter extends AbstractImporter
 
             $this->writer()->writeUser($userId, $person);
         }
+    }
 
-        //--------------------
-        // Tickets and messages
-        //--------------------
+    //--------------------
+    // Tickets
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function ticketImport()
+    {
         $this->progress()->startTicketImport();
         $statusMapping = [
             'Open'          => 'awaiting_agent',
@@ -268,8 +301,8 @@ class KayakoImporter extends AbstractImporter
         // get tickets
         $pager = $this->db()->getPager('SELECT * FROM swtickets');
         foreach ($pager as $n) {
-            if (isset($userAgentsMapping[$n['userid']])) {
-                $person = $this->writer()->agentOid($userAgentsMapping[$n['userid']]);
+            if (isset($this->userAgentsMapping[$n['userid']])) {
+                $person = $this->writer()->agentOid($this->userAgentsMapping[$n['userid']]);
             } else {
                 $person = $this->writer()->userOid($n['userid']);
             }
@@ -319,8 +352,8 @@ class KayakoImporter extends AbstractImporter
 
                 $person = null;
                 if ($m['userid']) {
-                    if (isset($userAgentsMapping[$m['userid']])) {
-                        $person = $this->writer()->agentOid($userAgentsMapping[$m['userid']]);
+                    if (isset($this->userAgentsMapping[$m['userid']])) {
+                        $person = $this->writer()->agentOid($this->userAgentsMapping[$m['userid']]);
                     } else {
                         $person = $this->writer()->userOid($m['userid']);
                     }
@@ -388,9 +421,10 @@ class KayakoImporter extends AbstractImporter
 
             // get ticket notes
             if ($this->db()->columnExists('swticketnotes', 'linktype')) {
-                $notesPager = $this->db()->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
-                    'ticket_id' => $n['ticketid'],
-                ]);
+                $notesPager = $this->db()
+                    ->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
+                        'ticket_id' => $n['ticketid'],
+                    ]);
             } else {
                 $notesPager = $this->db()->getPager('SELECT * FROM swticketnotes WHERE typeid = :ticket_id', [
                     'ticket_id' => $n['ticketid'],
@@ -436,44 +470,33 @@ class KayakoImporter extends AbstractImporter
 
             $this->writer()->writeTicket($n['ticketid'], $ticket);
         }
+    }
 
-        //--------------------
-        // Article categories
-        //--------------------
+    //--------------------
+    // Article categories
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function articleCategoryImport()
+    {
         $this->progress()->startArticleCategoryImport();
 
-        $getArticleCategories = function ($parentId) use (&$getArticleCategories) {
-            if ($this->db()->columnExists('swkbcategories', 'parentkbcategoryid')) {
-                $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id', [
-                    'parent_id' => $parentId,
-                ]);
-            } else {
-                $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentcategoryid = :parent_id', [
-                    'parent_id' => $parentId,
-                ]);
-            }
-
-            $categories = [];
-            foreach ($pager as $n) {
-                $categories[] = [
-                    'oid'        => $n['kbcategoryid'],
-                    'title'      => $n['title'],
-                    'categories' => $getArticleCategories($n['kbcategoryid']),
-                ];
-            }
-
-            return $categories;
-        };
-
-        foreach ($getArticleCategories(0) as $category) {
+        foreach ($this->getArticleCategories(0) as $category) {
             $this->writer()->writeArticleCategory($category['oid'], $category);
         }
+    }
 
-        //--------------------
-        // Articles
-        //--------------------
+    //--------------------
+    // Articles
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function articleImport()
+    {
         $this->progress()->startArticleImport();
         // todo need status mapping
         $statusMapping = [
@@ -527,11 +550,17 @@ class KayakoImporter extends AbstractImporter
 
             $this->writer()->writeArticle($n['kbarticleid'], $article);
         }
+    }
 
-        //--------------------
-        // News
-        //--------------------
+    //--------------------
+    // News
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function newsImport()
+    {
         $this->progress()->startNewsImport();
 
         $newsCategories = [];
@@ -609,11 +638,17 @@ class KayakoImporter extends AbstractImporter
                 $this->writer()->writeNews($n['newsid'], $news);
             }
         }
+    }
 
-        //--------------------
-        // Chats
-        //--------------------
+    //--------------------
+    // Chats
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function chatImport()
+    {
         $this->progress()->startChatImport();
 
         if ($this->db()->tableExists('swchatobjects')) {
@@ -666,21 +701,28 @@ class KayakoImporter extends AbstractImporter
                 $this->writer()->writeChat($n['chatobjectid'], $chat);
             }
         }
+    }
 
-        //--------------------
-        // Settings
-        //--------------------
+    //--------------------
+    // Settings
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function settingImport()
+    {
         $this->progress()->startSettingImport();
         $settingMapping = [
             'general_producturl'  => 'core.deskpro_url',
             'general_companyname' => 'core.deskpro_name',
         ];
 
-        $pager = $this->db()->getPager('SELECT * FROM swsettings WHERE section = :section AND vkey IN (:setting_names)', [
-            'section'       => 'settings',
-            'setting_names' => array_keys($settingMapping),
-        ]);
+        $pager = $this->db()
+            ->getPager('SELECT * FROM swsettings WHERE section = :section AND vkey IN (:setting_names)', [
+                'section'       => 'settings',
+                'setting_names' => array_keys($settingMapping),
+            ]);
 
         foreach ($pager as $n) {
             $this->writer()->writeSetting($n['settingid'], [
@@ -688,5 +730,38 @@ class KayakoImporter extends AbstractImporter
                 'value' => $n['data'],
             ]);
         }
+    }
+
+    //--------------------
+    // Helpers
+    //--------------------
+
+    /**
+     * @param int $parentId
+     *
+     * @return array
+     */
+    protected function getArticleCategories($parentId)
+    {
+        if ($this->db()->columnExists('swkbcategories', 'parentkbcategoryid')) {
+            $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id', [
+                'parent_id' => $parentId,
+            ]);
+        } else {
+            $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentcategoryid = :parent_id', [
+                'parent_id' => $parentId,
+            ]);
+        }
+
+        $categories = [];
+        foreach ($pager as $n) {
+            $categories[] = [
+                'oid'        => $n['kbcategoryid'],
+                'title'      => $n['title'],
+                'categories' => $this->getArticleCategories($n['kbcategoryid']),
+            ];
+        }
+
+        return $categories;
     }
 }
