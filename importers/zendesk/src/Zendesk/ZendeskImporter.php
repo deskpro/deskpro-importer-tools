@@ -25,6 +25,11 @@ class ZendeskImporter extends AbstractImporter
     private $ticketBrandField;
 
     /**
+     * @var array
+     */
+    private $ticketCustomDefMap = [];
+
+    /**
      * {@inheritdoc}
      */
     public function init(array $config)
@@ -54,58 +59,75 @@ class ZendeskImporter extends AbstractImporter
     /**
      * {@inheritdoc}
      */
-    public function runImport()
+    protected function getImportSteps()
     {
-        //--------------------
-        // Custom definitions
-        //--------------------
+        return [
+            'organization_custom_def',
+            'person_custom_def',
+            'ticket_custom_def',
+            'organization',
+            'person',
+            'ticket',
+            'article_category',
+            'article',
+        ];
+    }
 
-        $customDefMapper = function(array $data) {
-            $customDef = [
-                'title'           => isset($data['title_in_portal']) && $data['title_in_portal'] ? $data['title_in_portal'] : $data['title'],
-                'description'     => $data['description'],
-                'is_enabled'      => $data['active'],
-                'is_user_enabled' => $data['active'],
-                'is_agent_field'  => isset($data['visible_in_portal']) && !$data['visible_in_portal'],
-                'widget_type'     => ZendeskMapper::$customFieldWidgetTypeMapping[$data['type']],
-            ];
+    //--------------------
+    // Custom definitions
+    //--------------------
 
-            foreach (['system_field_options', 'custom_field_options'] as $optionGroup) {
-                if (!empty($data[$optionGroup])) {
-                    foreach ($data[$optionGroup] as $option) {
-                        $customDef['choices'][] = [
-                            'title' => $option['value'],
-                        ];
-                    }
-                }
-            }
-
-            return $customDef;
-        };
-
+    /**
+     * @return void
+     */
+    protected function organizationCustomDefImport()
+    {
+        $customDefMapper = $this->getCustomDefMapper();
         $this->progress()->startOrganizationCustomDefImport();
+
         foreach ($this->reader->getOrganizationFields() as $n) {
             $this->writer()->writeOrganizationCustomDef($n['id'], $customDefMapper($n));
         }
+    }
+
+    /**
+     * @return void
+     */
+    protected function personCustomDefImport()
+    {
+        $customDefMapper = $this->getCustomDefMapper();
 
         $this->progress()->startPersonCustomDefImport();
         foreach ($this->reader->getPersonFields() as $n) {
             $this->writer()->writePersonCustomDef($n['id'], $customDefMapper($n));
         }
+    }
+
+    /**
+     * @return void
+     */
+    protected function ticketCustomDefImport()
+    {
+        $customDefMapper          = $this->getCustomDefMapper();
+        $this->ticketCustomDefMap = [];
 
         $this->progress()->startTicketCustomDefImport();
-        $ticketCustomDefMap = [];
         foreach ($this->reader->getTicketFields() as $n) {
-            $customDef                    = $customDefMapper($n);
-            $ticketCustomDefMap[$n['id']] = $customDef['title'];
+            $customDef                          = $customDefMapper($n);
+            $this->ticketCustomDefMap[$n['id']] = $customDef['title'];
 
             $this->writer()->writeTicketCustomDef($n['id'], $customDef);
         }
+    }
 
-        //--------------------
-        // Organizations
-        //--------------------
+    //--------------------
+    // Organizations
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function organizationImport() {
         $this->progress()->startOrganizationImport();
         foreach ($this->reader->getOrganizations() as $n) {
             $organization = [
@@ -128,57 +150,18 @@ class ZendeskImporter extends AbstractImporter
 
             $this->writer()->writeOrganization($n['id'], $organization);
         }
+    }
 
-        //--------------------
-        // People
-        //--------------------
+    //--------------------
+    // People
+    //--------------------
 
-        $validTimezones = \DateTimeZone::listIdentifiers();
-        $validTimezones = array_combine($validTimezones, $validTimezones);
-
-        $writePerson = function(array $n) use($validTimezones) {
-            // user could have empty email, add auto generated one
-            if (!$n['email']) {
-                $n['email'] = 'imported.user.'.$n['id'].'@example.com';
-            }
-
-            $person = [
-                'name'         => $n['name'],
-                'emails'       => [$n['email']],
-                'date_created' => $n['created_at'],
-                'organization' => $n['organization_id'],
-            ];
-
-            if (isset(ZendeskMapper::$timezoneMapping[$n['time_zone']])) {
-                $person['timezone'] = ZendeskMapper::$timezoneMapping[$n['time_zone']];
-            } elseif (isset($validTimezones[$n['time_zone']])) {
-                $person['timezone'] = $validTimezones[$n['time_zone']];
-            } else {
-                $person['timezone'] = 'UTC';
-                $this->output()->warning("Found unknown timezone `{$n['time_zone']}`");
-            }
-
-            // custom fields
-            foreach ($n['user_fields'] as $c) {
-                if (!isset($c['value']) || !$c['value']) {
-                    continue;
-                }
-
-                $person['custom_fields'][] = [
-                    'oid'   => $c['id'],
-                    'value' => $c['value'],
-                ];
-            }
-
-            if ($n['role'] === 'admin') {
-                $person['is_admin'] = true;
-                $this->writer()->writeAgent($n['id'], $person, false);
-            } elseif ($n['role'] === 'agent') {
-                $this->writer()->writeAgent($n['id'], $person, false);
-            } else {
-                $this->writer()->writeUser($n['id'], $person, false);
-            }
-        };
+    /**
+     * @return void
+     */
+    protected function personImport()
+    {
+        $writePerson = $this->getPersonWriter();
 
         $this->progress()->startPersonImport();
         $pager = $this->reader->getPersonPager($this->startTime);
@@ -186,11 +169,17 @@ class ZendeskImporter extends AbstractImporter
         foreach ($pager as $n) {
             $writePerson($n);
         }
+    }
 
-        //--------------------
-        // Tickets
-        //--------------------
+    //--------------------
+    // Tickets
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function ticketImport()
+    {
         $this->progress()->startTicketImport();
         $statusMapping = [
             'new'     => 'awaiting_agent',
@@ -222,8 +211,8 @@ class ZendeskImporter extends AbstractImporter
                 }
 
                 if (!empty($CONFIG['ticket_brand_field'])
-                    && isset($ticketCustomDefMap[$c['id']])
-                    && $ticketCustomDefMap[$c['id']] === $CONFIG['ticket_brand_field']) {
+                    && isset($this->ticketCustomDefMap[$c['id']])
+                    && $this->ticketCustomDefMap[$c['id']] === $CONFIG['ticket_brand_field']) {
                     $ticket['brand'] = $c['value'];
                 } else {
                     $ticket['custom_fields'][] = [
@@ -262,11 +251,17 @@ class ZendeskImporter extends AbstractImporter
 
             $this->writer()->writeTicket($n['id'], $ticket);
         }
+    }
 
-        //--------------------
-        // Article categories
-        //--------------------
+    //--------------------
+    // Article categories
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function articleCategoryImport()
+    {
         $this->progress()->startArticleCategoryImport();
         $sections = [];
         foreach ($this->reader->getArticlesSections() as $n) {
@@ -288,11 +283,17 @@ class ZendeskImporter extends AbstractImporter
 
             $this->writer()->writeArticleCategory($n['id'], $category);
         }
+    }
 
-        //--------------------
-        // Articles
-        //--------------------
+    //--------------------
+    // Articles
+    //--------------------
 
+    /**
+     * @return void
+     */
+    protected function articleImport()
+    {
         $this->progress()->startArticleImport();
         $pager = $this->reader->getArticlePager($this->startTime);
 
@@ -361,5 +362,93 @@ class ZendeskImporter extends AbstractImporter
 
             $this->writer()->writeArticle($n['id'], $article);
         }
+    }
+
+    //--------------------
+    // Helpers
+    //--------------------
+
+    /**
+     * @return callable
+     */
+    protected function getCustomDefMapper()
+    {
+        return function(array $data) {
+            $customDef = [
+                'title'           => isset($data['title_in_portal']) && $data['title_in_portal']
+                    ? $data['title_in_portal']
+                    : $data['title'],
+                'description'     => $data['description'],
+                'is_enabled'      => $data['active'],
+                'is_user_enabled' => $data['active'],
+                'is_agent_field'  => isset($data['visible_in_portal']) && !$data['visible_in_portal'],
+                'widget_type'     => ZendeskMapper::$customFieldWidgetTypeMapping[$data['type']],
+            ];
+
+            foreach (['system_field_options', 'custom_field_options'] as $optionGroup) {
+                if (!empty($data[$optionGroup])) {
+                    foreach ($data[$optionGroup] as $option) {
+                        $customDef['choices'][] = [
+                            'title' => $option['value'],
+                        ];
+                    }
+                }
+            }
+
+            return $customDef;
+        };
+    }
+
+    /**
+     * @return callable
+     */
+    protected function getPersonWriter()
+    {
+        $validTimezones = \DateTimeZone::listIdentifiers();
+        $validTimezones = array_combine($validTimezones, $validTimezones);
+
+        return function(array $n) use ($validTimezones) {
+            // user could have empty email, add auto generated one
+            if (!$n['email']) {
+                $n['email'] = 'imported.user.'.$n['id'].'@example.com';
+            }
+
+            $person = [
+                'name'         => $n['name'],
+                'emails'       => [$n['email']],
+                'date_created' => $n['created_at'],
+                'organization' => $n['organization_id'],
+            ];
+
+            if (isset(ZendeskMapper::$timezoneMapping[$n['time_zone']])) {
+                $person['timezone'] = ZendeskMapper::$timezoneMapping[$n['time_zone']];
+            } elseif (isset($validTimezones[$n['time_zone']])) {
+                $person['timezone'] = $validTimezones[$n['time_zone']];
+            } else {
+                $person['timezone'] = 'UTC';
+                $this->output()->warning("Found unknown timezone `{$n['time_zone']}`");
+            }
+
+            // custom fields
+            foreach ($n['user_fields'] as $c) {
+                if (!isset($c['value']) || !$c['value']) {
+                    continue;
+                }
+
+                $person['custom_fields'][] = [
+                    'oid'   => $c['id'],
+                    'value' => $c['value'],
+                ];
+            }
+
+            if ($n['role'] === 'admin') {
+                $person['is_admin'] = true;
+                $this->writer()->writeAgent($n['id'], $person, false);
+            } elseif ($n['role'] === 'agent') {
+                $this->writer()->writeAgent($n['id'], $person, false);
+            } else {
+                $this->writer()->writeUser($n['id'], $person, false);
+            }
+        };
     }
 }

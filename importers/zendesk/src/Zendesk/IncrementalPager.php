@@ -107,7 +107,9 @@ class IncrementalPager
             }
 
             // update start time for next request
-            $this->startTime = new \DateTime("@{$result->end_time}");
+            $this->startTime = $result->end_time
+                ? new \DateTime("@{$result->end_time}")
+                : new \DateTime();
         }
 
         // prevent infinity loops

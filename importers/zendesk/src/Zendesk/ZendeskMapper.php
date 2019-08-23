@@ -263,7 +263,7 @@ class ZendeskMapper
     /**
      * @param string$locale
      *
-     * @return null|string
+     * @return null|string|array
      */
     public static function getLanguageByLocale($locale)
     {
