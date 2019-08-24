@@ -30,7 +30,6 @@ namespace DeskPRO\ImporterTools;
 
 use Application\DeskPRO\Entity\Job;
 use DeskPRO\Component\Util\StringUtils;
-use DeskPRO\ImporterTools\Exceptions\ImportProgressException;
 use DeskPRO\ImporterTools\Helpers\AttachmentHelper;
 use DeskPRO\ImporterTools\Helpers\CsvHelper;
 use DeskPRO\ImporterTools\Helpers\DbHelper;
@@ -82,7 +81,7 @@ abstract class AbstractImporter implements ImporterInterface
     /**
      * @return void
      *
-     * @throws ImportProgressException
+     * @throws \Exception
      */
     public function runImport() {
         if ($this->job instanceof Job) {
@@ -103,7 +102,8 @@ abstract class AbstractImporter implements ImporterInterface
                 $this->$method();
             } catch (\Exception $exception) {
                 $this->logger->error($exception->getMessage());
-                throw new ImportProgressException($step, $exception);
+
+                throw $exception;
             }
         }
     }
