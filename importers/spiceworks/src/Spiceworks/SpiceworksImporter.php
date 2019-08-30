@@ -3,7 +3,6 @@
 namespace DeskPRO\ImporterTools\Importers\Spiceworks;
 
 use DeskPRO\ImporterTools\AbstractImporter;
-use DeskPRO\ImporterTools\Exceptions\PagerException;
 
 /**
  * Class SpiceworksImporter.
@@ -70,7 +69,7 @@ class SpiceworksImporter extends AbstractImporter
     {
         $this->progress()->startPersonImport();
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'person',
             <<<SQL
                 SELECT
                     users.id, users.first_name, users.last_name, users.email, users.role
@@ -111,7 +110,7 @@ SQL
     {
         $this->progress()->startTicketImport();
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'ticket',
             <<<SQL
                 SELECT
                     t.id, t.summary, t.description, t.status,
@@ -159,7 +158,9 @@ SQL
                     WHERE comments.ticket_id = :ticket_id
                     ORDER BY comments.id ASC
 SQL
-                , ['ticket_id' => $n['id']]);
+                ,
+                ['ticket_id' => $n['id']]
+            );
 
 
             foreach ($messagePager as $m) {

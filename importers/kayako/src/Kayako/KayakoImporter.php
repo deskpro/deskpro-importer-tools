@@ -3,7 +3,6 @@
 namespace DeskPRO\ImporterTools\Importers\Kayako;
 
 use DeskPRO\ImporterTools\AbstractImporter;
-use DeskPRO\ImporterTools\Exceptions\PagerException;
 
 /**
  * Class KayakoImporter.
@@ -68,7 +67,7 @@ class KayakoImporter extends AbstractImporter
 
         if ($this->db()->tableExists('swuserorganizations')) {
             $pager = $this->db()->getPager(
-                $this->currentStep,
+                'organization',
                 'SELECT * FROM swuserorganizations',
                 [],
                 $offset
@@ -185,7 +184,7 @@ class KayakoImporter extends AbstractImporter
             }
         }
 
-        $pager = $this->db()->getPager($this->currentStep, 'SELECT * FROM swusers', [], $offset);
+        $pager = $this->db()->getPager('person', 'SELECT * FROM swusers', [], $offset);
         foreach ($pager as $n) {
             $userId = $n['userid'];
 
@@ -303,7 +302,7 @@ class KayakoImporter extends AbstractImporter
         }
 
         // get tickets
-        $pager = $this->db()->getPager($this->currentStep, 'SELECT * FROM swtickets', [], $offset);
+        $pager = $this->db()->getPager('ticket', 'SELECT * FROM swtickets', [], $offset);
 
         if (empty($this->userAgentsMapping)) {
             $this->fillAgentsMapping();
@@ -434,11 +433,13 @@ class KayakoImporter extends AbstractImporter
             if ($this->db()->columnExists('swticketnotes', 'linktype')) {
                 $notesPager = $this->db()
                     ->getPager(
+                        'ticket_notes',
                         'SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id',
                         ['ticket_id' => $n['ticketid']]
                     );
             } else {
                 $notesPager = $this->db()->getPager(
+                    'ticket_notes',
                     'SELECT * FROM swticketnotes WHERE typeid = :ticket_id',
                     ['ticket_id' => $n['ticketid']]
                 );
@@ -511,7 +512,7 @@ class KayakoImporter extends AbstractImporter
         ];
 
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'article',
             'SELECT * FROM swkbarticles',
             [],
             $offset
@@ -549,18 +550,14 @@ class KayakoImporter extends AbstractImporter
 
             // get article content
             $contentPager = $this->db()->getPager(
+                'article_content',
                 'SELECT * FROM swkbarticledata WHERE kbarticleid = :article_id',
                 ['article_id' => $n['kbarticleid']]
             );
 
-            try {
-                foreach ($contentPager as $c) {
-                    $article['content'] .= $c['contents'];
-                }
-            } catch (\Exception $exception) {
-                new PagerException($pager->getPageNum(), $exception);
+            foreach ($contentPager as $c) {
+                $article['content'] .= $c['contents'];
             }
-
 
             if (!$article['content']) {
                 $article['content'] = 'no content';
@@ -594,7 +591,7 @@ class KayakoImporter extends AbstractImporter
             ];
 
             $pager = $this->db()->getPager(
-                $this->currentStep,
+                'news',
                 'SELECT * FROM swnewsitems',
                 [],
                 $offset
@@ -636,7 +633,7 @@ class KayakoImporter extends AbstractImporter
             }
         } elseif ($this->db()->tableExists('swnews')) {
             $pager = $this->db()->getPager(
-                $this->currentStep,
+                'news',
                 'SELECT * FROM swnews',
                 [],
                 $offset
@@ -681,7 +678,7 @@ class KayakoImporter extends AbstractImporter
 
         if ($this->db()->tableExists('swchatobjects')) {
             $pager = $this->db()->getPager(
-                $this->currentStep,
+                'chat',
                 'SELECT * FROM swchatobjects',
                 [],
                 $offset
@@ -751,7 +748,7 @@ class KayakoImporter extends AbstractImporter
 
         $pager = $this->db()
             ->getPager(
-                $this->currentStep,
+                'setting',
                 'SELECT * FROM swsettings WHERE section = :section AND vkey IN (:setting_names)',
                 [
                     'section'       => 'settings',
@@ -781,15 +778,15 @@ class KayakoImporter extends AbstractImporter
     {
         if ($this->db()->columnExists('swkbcategories', 'parentkbcategoryid')) {
             $pager = $this->db()->getPager(
+                'article_categories',
                 'SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id',
-                ['parent_id' => $parentId],
-                $this->getCurrentFailedPage()
+                ['parent_id' => $parentId]
             );
         } else {
             $pager = $this->db()->getPager(
+                'article_categories',
                 'SELECT * FROM swkbcategories WHERE parentcategoryid = :parent_id',
-                ['parent_id' => $parentId],
-                $this->getCurrentFailedPage()
+                ['parent_id' => $parentId]
             );
         }
 
@@ -812,7 +809,7 @@ class KayakoImporter extends AbstractImporter
     {
         $staffEmailsMapping = [];
 
-        $pager = $this->db()->getPager('SELECT * FROM swstaff');
+        $pager = $this->db()->getPager('swstaff', 'SELECT * FROM swstaff');
         foreach ($pager as $n) {
             $staffId = $n['staffid'];
             $email   = $n['email'];
@@ -823,7 +820,7 @@ class KayakoImporter extends AbstractImporter
             $staffEmailsMapping[$email] = $staffId;
         }
 
-        $pager = $this->db()->getPager('SELECT * FROM swusers');
+        $pager = $this->db()->getPager('swusers', 'SELECT * FROM swusers');
         foreach ($pager as $n) {
             $userId = $n['userid'];
 

@@ -28,10 +28,7 @@
 
 namespace DeskPRO\ImporterTools;
 
-use Application\DeskPRO\Entity\Job;
-use DeskPRO\Bundle\ImportBundle\Event\ProgressEvent;
 use DeskPRO\Component\Util\StringUtils;
-use DeskPRO\ImporterTools\Exceptions\PagerException;
 use DeskPRO\ImporterTools\Helpers\AttachmentHelper;
 use DeskPRO\ImporterTools\Helpers\CsvHelper;
 use DeskPRO\ImporterTools\Helpers\DbHelper;
@@ -41,7 +38,6 @@ use DeskPRO\ImporterTools\Helpers\ProgressHelper;
 use DeskPRO\ImporterTools\Helpers\WriteHelper;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Intl\Exception\MethodNotImplementedException;
 
 /**
@@ -60,29 +56,14 @@ abstract class AbstractImporter implements ImporterInterface
     protected $container;
 
     /**
-     * @var EventDispatcher
-     */
-    protected $importerDispatcher;
-
-    /**
      * @var array
      */
     protected $helpers;
 
     /**
-     * @var Job
-     */
-    protected $job;
-
-    /**
      * @var string
      */
     protected $currentStep;
-
-    /**
-     * @var array
-     */
-    protected $offsets = [];
 
     /**
      * Constructor.
@@ -94,7 +75,6 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $this->logger             = $logger;
         $this->container          = $container;
-//        $this->importerDispatcher = $container->get('dp.importer.event_dispatcher');
     }
 
     /**
@@ -105,11 +85,8 @@ abstract class AbstractImporter implements ImporterInterface
      * @throws \Exception
      */
     public function runImport($importedSteps = [], $offsets = []) {
-        $this->offsets = $offsets;
-
         foreach ($this->getImportSteps() as $step) {
-            $this->currentStep = $step;
-            $method            = StringUtils::toCamelCase($step).'Import';
+            $method = StringUtils::toCamelCase($step).'Import';
 
             if (!method_exists($this, $method)) {
                 throw new MethodNotImplementedException($step);
@@ -119,7 +96,7 @@ abstract class AbstractImporter implements ImporterInterface
                 continue;
             }
 
-            $this->$method($this->getCurrentOffset());
+            $this->$method($this->getStepOffset($step, $offsets));
         }
     }
 
@@ -209,14 +186,16 @@ abstract class AbstractImporter implements ImporterInterface
     }
 
     /**
-     * @param int $default
+     * @param string $step
+     * @param array  $offsets
+     * @param int    $default
      *
-     * @return mixed
+     * @return int
      */
-    protected function getCurrentOffset($default = 1)
+    protected function getStepOffset($step, $offsets, $default = 1)
     {
-        return array_key_exists($this->currentStep, $this->offsets)
-            ? $this->offsets[$this->currentStep]
+        return array_key_exists($step, $offsets)
+            ? $offsets[$step]
             : $default;
     }
 }

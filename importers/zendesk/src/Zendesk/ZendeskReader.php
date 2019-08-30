@@ -86,7 +86,8 @@ class ZendeskReader
     /**
      * Constructor.
      *
-     * @param LoggerInterface $logger
+     * @param LoggerInterface          $logger
+     * @param EventDispatcherInterface $eventDispatcher
      */
     public function __construct(LoggerInterface $logger, EventDispatcherInterface $eventDispatcher)
     {
@@ -125,7 +126,7 @@ class ZendeskReader
      *
      * @throws RetryAfterException
      *
-     * @return IncrementalPager
+     * @return \Generator
      */
     public function getPersonPager(\DateTime $startTime)
     {
@@ -193,7 +194,7 @@ class ZendeskReader
      *
      * @throws RetryAfterException
      *
-     * @return IncrementalPager
+     * @return \Generator
      */
     public function getTicketPager(\DateTime $startTime = null)
     {
@@ -322,7 +323,7 @@ class ZendeskReader
      *
      * @param \DateTime|null $startTime
      *
-     * @return IncrementalPager
+     * @return \Generator
      */
     public function getArticlePager(\DateTime $startTime = null)
     {

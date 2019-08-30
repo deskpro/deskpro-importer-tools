@@ -2,7 +2,6 @@
 
 namespace DeskPRO\ImporterTools\Importers\Zendesk;
 
-use DeskPRO\Bundle\ImportBundle\Event\ProgressEvent;
 use DeskPRO\ImporterTools\AbstractImporter;
 
 /**
@@ -67,10 +66,10 @@ class ZendeskImporter extends AbstractImporter
             'person_custom_def',
             'ticket_custom_def',
             'organization',
-            'person',
-            'ticket',
+            'users',
+            'tickets',
             'article_category',
-            'article',
+            'articles',
         ];
     }
 
@@ -153,7 +152,7 @@ class ZendeskImporter extends AbstractImporter
      * @return void
      * @throws \Exception
      */
-    protected function personImport($offset)
+    protected function usersImport($offset)
     {
         $this->progress()->startPersonImport();
         $pager = $this->reader->getPersonPager($offset);
@@ -169,7 +168,7 @@ class ZendeskImporter extends AbstractImporter
      * @return void
      * @throws \Exception
      */
-    protected function ticketImport($offset)
+    protected function ticketsImport($offset)
     {
         $this->progress()->startTicketImport();
         $statusMapping = [
@@ -285,7 +284,7 @@ class ZendeskImporter extends AbstractImporter
      * @return void
      * @throws \Exception
      */
-    protected function articleImport($offset)
+    protected function articlesImport($offset)
     {
         $this->progress()->startArticleImport();
         $pager = $this->reader->getArticlePager($offset);
@@ -446,14 +445,16 @@ class ZendeskImporter extends AbstractImporter
     }
 
     /**
-     * @param int $default
+     * @param string $step
+     * @param array  $offsets
+     * @param mixed  $default
      *
-     * @return \DateTime|mixed
+     * @return \DateTime
      * @throws \Exception
      */
-    protected function getCurrentOffset($default = 1)
+    protected function getStepOffset($step, $offsets, $default = null)
     {
-        $offset = parent::getCurrentOffset(null);
+        $offset = parent::getStepOffset($step, $offsets, $default);
 
         return $offset !== null
             ? new \DateTime("@{$offset}")

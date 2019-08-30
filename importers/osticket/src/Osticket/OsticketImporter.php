@@ -3,7 +3,6 @@
 namespace DeskPRO\ImporterTools\Importers\Osticket;
 
 use DeskPRO\ImporterTools\AbstractImporter;
-use DeskPRO\ImporterTools\Exceptions\PagerException;
 
 /**
  * Class OsticketImporter.
@@ -63,7 +62,6 @@ class OsticketImporter extends AbstractImporter
             'organization',
             'person_staff',
             'person_user',
-            'person',
             'ticket',
             'article_category',
             'article',
@@ -119,7 +117,7 @@ class OsticketImporter extends AbstractImporter
     protected function organizationImport($offset) {
         $this->progress()->startOrganizationImport();
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'organization',
             "SELECT * FROM {$this->tablePrefix}organization",
             [],
             $offset
@@ -147,7 +145,7 @@ class OsticketImporter extends AbstractImporter
     {
         $this->progress()->startPersonImport();
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'person_staff',
             "SELECT * FROM {$this->tablePrefix}staff",
             [],
             $offset
@@ -200,7 +198,7 @@ class OsticketImporter extends AbstractImporter
         $this->progress()->startPersonImport();
 
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'person_user',
             "SELECT * FROM {$this->tablePrefix}user",
             [],
             $offset
@@ -239,7 +237,7 @@ class OsticketImporter extends AbstractImporter
     {
         $this->progress()->startTicketImport();
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'ticket',
             "SELECT * FROM {$this->tablePrefix}ticket",
             [],
             $offset
@@ -334,7 +332,7 @@ class OsticketImporter extends AbstractImporter
     {
         $this->progress()->startArticleCategoryImport();
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'article_category',
             "SELECT * FROM {$this->tablePrefix}faq_category",
             [],
             $offset
@@ -357,7 +355,7 @@ class OsticketImporter extends AbstractImporter
     {
         $this->progress()->startArticleImport();
         $pager = $this->db()->getPager(
-            $this->currentStep,
+            'article',
             "SELECT * FROM {$this->tablePrefix}faq",
             [],
             $offset
@@ -389,7 +387,7 @@ class OsticketImporter extends AbstractImporter
 
         $pager = $this->db()
             ->getPager(
-                $this->currentStep,
+                'setting',
                 "SELECT * FROM {$this->tablePrefix}config WHERE namespace = 'core' AND `key` IN (:setting_names)",
                 [
                     'section'       => 'settings',
