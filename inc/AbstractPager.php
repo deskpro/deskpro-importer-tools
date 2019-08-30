@@ -3,7 +3,6 @@
 namespace DeskPRO\ImporterTools;
 
 use Generator;
-use DeskPRO\ImporterTools\Exceptions\PagerException;
 
 /**
  * Class AbstractPager
@@ -15,7 +14,6 @@ abstract class AbstractPager implements PagerInterface
      * @param PagerInterface $pager
      *
      * @return Generator
-     * @throws PagerException
      */
     public static function getIterator(PagerInterface $pager)
     {

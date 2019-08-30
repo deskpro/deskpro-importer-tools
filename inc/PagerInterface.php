@@ -20,8 +20,6 @@ interface PagerInterface
 
     /**
      * @return array
-     *
-     * @throws PagerException
      */
     public function next();
 }

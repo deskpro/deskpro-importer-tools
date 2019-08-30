@@ -2,6 +2,7 @@
 
 namespace DeskPRO\ImporterTools\Importers\Zendesk;
 
+use DeskPRO\Bundle\ImportBundle\Event\ProgressEvent;
 use DeskPRO\ImporterTools\AbstractImporter;
 
 /**
@@ -39,7 +40,7 @@ class ZendeskImporter extends AbstractImporter
             $config['start_time'] = '-2 years';
         }
 
-        $this->reader = new ZendeskReader($this->logger);
+        $this->reader = new ZendeskReader($this->logger, $this->container->get('dp.importer.event_dispatcher'));
         $this->reader->setConfig($config['account']);
         $this->writer()->setOidPrefix($config['account']['subdomain']);
 
@@ -147,13 +148,15 @@ class ZendeskImporter extends AbstractImporter
     }
 
     /**
+     * @param \DateTime $offset
+     *
      * @return void
      * @throws \Exception
      */
-    protected function personImport()
+    protected function personImport($offset)
     {
         $this->progress()->startPersonImport();
-        $pager = $this->reader->getPersonPager($this->getStartTime());
+        $pager = $this->reader->getPersonPager($offset);
 
         foreach ($pager as $n) {
             $this->writePerson($n);
@@ -161,10 +164,12 @@ class ZendeskImporter extends AbstractImporter
     }
 
     /**
+     * @param \DateTime $offset
+     *
      * @return void
      * @throws \Exception
      */
-    protected function ticketImport()
+    protected function ticketImport($offset)
     {
         $this->progress()->startTicketImport();
         $statusMapping = [
@@ -184,7 +189,7 @@ class ZendeskImporter extends AbstractImporter
             }
         }
 
-        $pager = $this->reader->getTicketPager($this->getStartTime());
+        $pager = $this->reader->getTicketPager($offset);
         foreach ($pager as $n) {
             $ticket = [
                 'subject'      => $n['subject'] ?: 'No Subject',
@@ -275,13 +280,15 @@ class ZendeskImporter extends AbstractImporter
     }
 
     /**
+     * @param \DateTime $offset
+     *
      * @return void
      * @throws \Exception
      */
-    protected function articleImport()
+    protected function articleImport($offset)
     {
         $this->progress()->startArticleImport();
-        $pager = $this->reader->getArticlePager($this->getStartTime());
+        $pager = $this->reader->getArticlePager($offset);
 
         foreach ($pager as $n) {
             $article = [
@@ -439,15 +446,17 @@ class ZendeskImporter extends AbstractImporter
     }
 
     /**
-     * @return \DateTime
+     * @param int $default
+     *
+     * @return \DateTime|mixed
      * @throws \Exception
      */
-    protected function getStartTime()
+    protected function getCurrentOffset($default = 1)
     {
-        $failedPage = $this->getCurrentFailedPage(null);
+        $offset = parent::getCurrentOffset(null);
 
-        return $failedPage !== null
-            ? new \DateTime("@{$failedPage}")
+        return $offset !== null
+            ? new \DateTime("@{$offset}")
             : $this->startTime;
     }
 }

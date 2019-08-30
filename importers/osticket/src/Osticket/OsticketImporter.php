@@ -112,14 +112,17 @@ class OsticketImporter extends AbstractImporter
     }
 
     /**
+     * @param int $offset
+     *
      * @return void
      */
-    protected function organizationImport() {
+    protected function organizationImport($offset) {
         $this->progress()->startOrganizationImport();
         $pager = $this->db()->getPager(
+            $this->currentStep,
             "SELECT * FROM {$this->tablePrefix}organization",
             [],
-            $this->getCurrentFailedPage()
+            $offset
         );
 
         foreach ($pager as $n) {
@@ -136,15 +139,18 @@ class OsticketImporter extends AbstractImporter
     }
 
     /**
+     * @param int $offset
+     *
      * @return void
      */
-    protected function personStaffImport()
+    protected function personStaffImport($offset)
     {
         $this->progress()->startPersonImport();
         $pager = $this->db()->getPager(
+            $this->currentStep,
             "SELECT * FROM {$this->tablePrefix}staff",
             [],
-            $this->getCurrentFailedPage()
+            $offset
         );
 
         $agentGroupNames = [];
@@ -185,16 +191,19 @@ class OsticketImporter extends AbstractImporter
     }
 
     /**
+     * @param int $offset
+     *
      * @return void
      */
-    protected function personUserImport()
+    protected function personUserImport($offset)
     {
         $this->progress()->startPersonImport();
 
         $pager = $this->db()->getPager(
+            $this->currentStep,
             "SELECT * FROM {$this->tablePrefix}user",
             [],
-            $this->getCurrentFailedPage()
+            $offset
         );
         foreach ($pager as $n) {
             $user = [
@@ -221,16 +230,19 @@ class OsticketImporter extends AbstractImporter
     }
 
     /**
+     * @param int $offset
+     *
      * @return void
      * @throws \Exception
      */
-    protected function ticketImport()
+    protected function ticketImport($offset)
     {
         $this->progress()->startTicketImport();
         $pager = $this->db()->getPager(
+            $this->currentStep,
             "SELECT * FROM {$this->tablePrefix}ticket",
             [],
-            $this->getCurrentFailedPage()
+            $offset
         );
 
         // ticket statuses
@@ -280,36 +292,33 @@ class OsticketImporter extends AbstractImporter
             // messages
             $messagesPager = $this->db()
                 ->getPager(
+                    'ticket_messages',
                     "SELECT * FROM {$this->tablePrefix}ticket_thread WHERE ticket_id = :ticket_id",
                     ['ticket_id' => $n['ticket_id']]
                 );
 
-            try {
-                foreach ($messagesPager as $m) {
-                    $message = [
-                        'oid'     => $m['id'],
-                        'person'  => $this->writer()->userOid($m['user_id']),
-                        'message' => $m['body'],
-                        'is_note' => $m['thread_type'] === 'N',
-                    ];
+            foreach ($messagesPager as $m) {
+                $message = [
+                    'oid'     => $m['id'],
+                    'person'  => $this->writer()->userOid($m['user_id']),
+                    'message' => $m['body'],
+                    'is_note' => $m['thread_type'] === 'N',
+                ];
 
-                    // message attachments
-                    $messageAttachments = $this->db()
-                        ->findAll("SELECT * FROM {$this->tablePrefix}ticket_attachment WHERE ref_id = :message_id", [
-                            'message_id' => $m['id'],
-                        ]);
+                // message attachments
+                $messageAttachments = $this->db()
+                    ->findAll("SELECT * FROM {$this->tablePrefix}ticket_attachment WHERE ref_id = :message_id", [
+                        'message_id' => $m['id'],
+                    ]);
 
-                    foreach ($messageAttachments as $attachment) {
-                        $blobData = $this->getBlobData($attachment['file_id']);
-                        if ($blobData) {
-                            $message['attachments'][] = $blobData;
-                        }
+                foreach ($messageAttachments as $attachment) {
+                    $blobData = $this->getBlobData($attachment['file_id']);
+                    if ($blobData) {
+                        $message['attachments'][] = $blobData;
                     }
-
-                    $ticket['messages'][] = $message;
                 }
-            } catch (\Exception $exception) {
-                throw new PagerException($pager->getPageNum(), $exception);
+
+                $ticket['messages'][] = $message;
             }
 
             $this->writer()->writeTicket($n['ticket_id'], $ticket);
@@ -317,15 +326,18 @@ class OsticketImporter extends AbstractImporter
     }
 
     /**
+     * @param int $offset
+     *
      * @return void
      */
-    protected function articleCategoryImport()
+    protected function articleCategoryImport($offset)
     {
         $this->progress()->startArticleCategoryImport();
         $pager = $this->db()->getPager(
+            $this->currentStep,
             "SELECT * FROM {$this->tablePrefix}faq_category",
             [],
-            $this->getCurrentFailedPage()
+            $offset
         );
 
         foreach ($pager as $n) {
@@ -337,15 +349,18 @@ class OsticketImporter extends AbstractImporter
     }
 
     /**
+     * @param int $offset
+     *
      * @return void
      */
-    protected function articleImport()
+    protected function articleImport($offset)
     {
         $this->progress()->startArticleImport();
         $pager = $this->db()->getPager(
+            $this->currentStep,
             "SELECT * FROM {$this->tablePrefix}faq",
             [],
-            $this->getCurrentFailedPage()
+            $offset
         );
 
         foreach ($pager as $n) {
@@ -360,9 +375,11 @@ class OsticketImporter extends AbstractImporter
     }
 
     /**
+     * @param int $offset
+     *
      * @return void
      */
-    protected function settingImport()
+    protected function settingImport($offset)
     {
         $this->progress()->startSettingImport();
         $settingMapping = [
@@ -372,12 +389,13 @@ class OsticketImporter extends AbstractImporter
 
         $pager = $this->db()
             ->getPager(
+                $this->currentStep,
                 "SELECT * FROM {$this->tablePrefix}config WHERE namespace = 'core' AND `key` IN (:setting_names)",
                 [
                     'section'       => 'settings',
                     'setting_names' => array_keys($settingMapping),
                 ],
-                $this->getCurrentFailedPage()
+                $offset
             );
 
         foreach ($pager as $n) {

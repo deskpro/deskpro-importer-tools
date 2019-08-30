@@ -28,9 +28,10 @@
 
 namespace DeskPRO\ImporterTools\Helpers;
 
+use DeskPRO\Bundle\ImportBundle\Event\ProgressEvent;
 use DeskPRO\ImporterTools\AbstractPager;
-use DeskPRO\ImporterTools\Exceptions\PagerException;
 use Doctrine\DBAL\Connection;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class DbPager.
@@ -46,6 +47,11 @@ class DbPager extends AbstractPager
      * @var string
      */
     private $query;
+
+    /**
+     * @var string
+     */
+    private $step;
 
     /**
      * @var array
@@ -68,16 +74,25 @@ class DbPager extends AbstractPager
     private $perPage;
 
     /**
+     * @var EventDispatcherInterface
+     */
+    private $eventDispatcher;
+
+    /**
      * Constructor.
      *
-     * @param Connection $connection
-     * @param string     $query
-     * @param array      $params
-     * @param int        $pageNum
-     * @param int        $perPage
+     * @param Connection               $connection
+     * @param EventDispatcherInterface $eventDispatcher
+     * @param string                   $step
+     * @param string                   $query
+     * @param array                    $params
+     * @param int                      $pageNum
+     * @param int                      $perPage
      */
     public function __construct(
         Connection $connection,
+        EventDispatcherInterface $eventDispatcher,
+        $step,
         $query,
         array $params = [],
         $pageNum = 1,
@@ -87,41 +102,35 @@ class DbPager extends AbstractPager
             throw new \RuntimeException('Per page number should be greater than 1.');
         }
 
-        $this->connection = $connection;
-        $this->query      = $query;
-        $this->pageNum    = $pageNum;
-        $this->perPage    = $perPage;
-        $this->params     = $params;
-        $this->types      = DbHelper::getParamTypes($params);
+        $this->connection      = $connection;
+        $this->eventDispatcher = $eventDispatcher;
+        $this->query           = $query;
+        $this->step            = $step;
+        $this->pageNum         = $pageNum;
+        $this->perPage         = $perPage;
+        $this->params          = $params;
+        $this->types           = DbHelper::getParamTypes($params);
     }
 
     /**
      * @return array
-     * @throws PagerException
      */
     public function next()
     {
-        try {
-            $limit     = ($this->pageNum - 1) * $this->perPage;
-            $statement = $this->connection->executeQuery(
-                "{$this->query} LIMIT $limit, {$this->perPage}",
-                $this->params,
-                $this->types
-            );
+        $limit     = ($this->pageNum - 1) * $this->perPage;
+        $statement = $this->connection->executeQuery(
+            "{$this->query} LIMIT $limit, {$this->perPage}",
+            $this->params,
+            $this->types
+        );
 
-            ++$this->pageNum;
+        $this->eventDispatcher->dispatch(
+            ProgressEvent::POST_STEP_IMPORT,
+            new ProgressEvent(null, ['offset' => [$this->step => $this->pageNum]])
+        );
 
-            return $statement->fetchAll();
-        } catch (\Exception $exception) {
-            throw new PagerException($this->pageNum, $exception);
-        }
-    }
+        ++$this->pageNum;
 
-    /**
-     * @return int
-     */
-    public function getPageNum()
-    {
-        return $this->pageNum;
+        return $statement->fetchAll();
     }
 }

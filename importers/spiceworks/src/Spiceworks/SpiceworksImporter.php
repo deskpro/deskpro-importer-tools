@@ -62,20 +62,24 @@ class SpiceworksImporter extends AbstractImporter
     //---------------------
 
     /**
+     * @param int $offset
+     *
      * @return void
      */
-    protected function personImport()
+    protected function personImport($offset)
     {
         $this->progress()->startPersonImport();
-        $pager = $this->db()->getPager(<<<SQL
-            SELECT
-                users.id, users.first_name, users.last_name, users.email, users.role
-            FROM users
-            ORDER BY users.id ASC
+        $pager = $this->db()->getPager(
+            $this->currentStep,
+            <<<SQL
+                SELECT
+                    users.id, users.first_name, users.last_name, users.email, users.role
+                FROM users
+                ORDER BY users.id ASC
 SQL
         ,
             [],
-            $this->getCurrentFailedPage()
+            $offset
         );
 
         foreach ($pager as $n) {
@@ -99,23 +103,27 @@ SQL
     }
 
     /**
+     * @param int $offset
+     *
      * @return void
      */
-    protected function ticketImport()
+    protected function ticketImport($offset)
     {
         $this->progress()->startTicketImport();
-        $pager = $this->db()->getPager(<<<SQL
-            SELECT
-                t.id, t.summary, t.description, t.status,
-                t.priority, t.created_at, t.updated_at, t.closed_at,
-                t.created_by, t.assigned_to, t.category, t.status_updated_at,
-                t.created_by, t.assigned_to
-            FROM tickets AS t
-            ORDER BY t.id ASC
+        $pager = $this->db()->getPager(
+            $this->currentStep,
+            <<<SQL
+                SELECT
+                    t.id, t.summary, t.description, t.status,
+                    t.priority, t.created_at, t.updated_at, t.closed_at,
+                    t.created_by, t.assigned_to, t.category, t.status_updated_at,
+                    t.created_by, t.assigned_to
+                FROM tickets AS t
+                ORDER BY t.id ASC
 SQL
         ,
             [],
-            $this->getCurrentFailedPage()
+            $offset
         );
 
         foreach ($pager as $n) {
@@ -140,46 +148,45 @@ SQL
             ];
 
             // messages
-            $messagePager = $this->db()->getPager(<<<SQL
-                SELECT
-                    comments.id, comments.body, comments.created_at, comments.is_public,
-                    comments.attachment_content_type, comments.attachment_name,
-                    comments.created_by
-                FROM comments
-                WHERE comments.ticket_id = :ticket_id
-                ORDER BY comments.id ASC
+            $messagePager = $this->db()->getPager(
+                'ticket_messages',
+                <<<SQL
+                    SELECT
+                        comments.id, comments.body, comments.created_at, comments.is_public,
+                        comments.attachment_content_type, comments.attachment_name,
+                        comments.created_by
+                    FROM comments
+                    WHERE comments.ticket_id = :ticket_id
+                    ORDER BY comments.id ASC
 SQL
                 , ['ticket_id' => $n['id']]);
 
-            try {
-                foreach ($messagePager as $m) {
-                    $message = [
-                        'oid'          => $m['id'],
-                        'message'      => $m['body'] ?: '(empty message)',
-                        'date_created' => $this->formatter()->getFormattedDate($m['created_at']),
-                        'is_note'      => $m['is_public'] === 't',
-                        'person'       => $m['created_by']
-                    ];
 
-                    if ($m['attachment_name']) {
-                        $filePath = rtrim($this->attachmentsPath , '/') .'/'.$n['id'].'/'.$m['id'].'-'.$m['attachment_name'];
-                        if (file_exists($filePath)) {
-                            $message['attachments'] = [[
-                                'person'       => $m['created_by'],
-                                'blob_path'    => $filePath,
-                                'file_name'    => $m['attachment_name'],
-                                'content_type' => $m['attachment_content_type']
-                            ]];
-                        } else {
-                            $this->output()
-                                ->warning("Missing file attachment on ticket {$n['id']}: {$m['attachment_name']} -- Expected: $filePath");
-                        }
+            foreach ($messagePager as $m) {
+                $message = [
+                    'oid'          => $m['id'],
+                    'message'      => $m['body'] ?: '(empty message)',
+                    'date_created' => $this->formatter()->getFormattedDate($m['created_at']),
+                    'is_note'      => $m['is_public'] === 't',
+                    'person'       => $m['created_by']
+                ];
+
+                if ($m['attachment_name']) {
+                    $filePath = rtrim($this->attachmentsPath , '/') .'/'.$n['id'].'/'.$m['id'].'-'.$m['attachment_name'];
+                    if (file_exists($filePath)) {
+                        $message['attachments'] = [[
+                            'person'       => $m['created_by'],
+                            'blob_path'    => $filePath,
+                            'file_name'    => $m['attachment_name'],
+                            'content_type' => $m['attachment_content_type']
+                        ]];
+                    } else {
+                        $this->output()
+                            ->warning("Missing file attachment on ticket {$n['id']}: {$m['attachment_name']} -- Expected: $filePath");
                     }
-
-                    $ticket['messages'][] = $message;
                 }
-            } catch (\Exception $exception) {
-                throw new PagerException($pager->getPageNum(), $exception);
+
+                $ticket['messages'][] = $message;
             }
 
             $this->writer()->writeTicket($n['id'], $ticket);

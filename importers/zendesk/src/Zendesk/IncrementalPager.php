@@ -28,10 +28,11 @@
 
 namespace DeskPRO\ImporterTools\Importers\Zendesk;
 
+use DeskPRO\Bundle\ImportBundle\Event\ProgressEvent;
 use DeskPRO\ImporterTools\AbstractPager;
-use DeskPRO\ImporterTools\Exceptions\PagerException;
 use DeskPRO\ImporterTools\Importers\Zendesk\Request\Request;
 use DeskPRO\ImporterTools\Importers\Zendesk\Request\RequestAdapterInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class IncrementalPager.
@@ -69,65 +70,77 @@ class IncrementalPager extends AbstractPager
     private $lastHash = null;
 
     /**
+     * @var EventDispatcherInterface
+     */
+    private $eventDispatcher;
+
+    /**
      * Constructor.
      *
-     * @param RequestAdapterInterface $adapter
-     * @param Request                 $request
-     * @param string                  $property
-     * @param \DateTime               $startTime
+     * @param EventDispatcherInterface $eventDispatcher
+     * @param RequestAdapterInterface  $adapter
+     * @param Request                  $request
+     * @param string                   $property
+     * @param \DateTime                $startTime
      */
-    public function __construct(RequestAdapterInterface $adapter, Request $request, $property, \DateTime $startTime)
-    {
-        $this->adapter   = $adapter;
-        $this->request   = $request;
-        $this->property  = $property;
-        $this->startTime = $startTime;
+    public function __construct(
+        EventDispatcherInterface $eventDispatcher,
+        RequestAdapterInterface $adapter,
+        Request $request,
+        $property,
+        \DateTime $startTime
+    ) {
+        $this->eventDispatcher = $eventDispatcher;
+        $this->adapter         = $adapter;
+        $this->request         = $request;
+        $this->property        = $property;
+        $this->startTime       = $startTime;
     }
 
     /**
      * @return array
-     * @throws PagerException
      */
     public function next()
     {
-        try {
-            $this->request->setParams([
-                'start_time' => $this->startTime->getTimestamp(),
-            ]);
+        $this->request->setParams([
+            'start_time' => $this->startTime->getTimestamp(),
+        ]);
 
-            $items  = [];
-            $result = $this->adapter->doRequest($this->request);
-            if ($result) {
-                if (is_array($result->{$this->property})) {
-                    foreach ($result->{$this->property} as $item) {
-                        $items[] = ZendeskReader::toArray($item);
-                    }
+        $items  = [];
+        $result = $this->adapter->doRequest($this->request);
+        if ($result) {
+            if (is_array($result->{$this->property})) {
+                foreach ($result->{$this->property} as $item) {
+                    $items[] = ZendeskReader::toArray($item);
                 }
-
-                // if there was request and request data less than 2 then we suppose that it's end of fetching
-                // end return empty result
-                if ($result->count < 2 && $this->wasRequest) {
-                    $items = [];
-                }
-
-                // update start time for next request
-                $this->startTime = $result->end_time
-                    ? new \DateTime("@{$result->end_time}")
-                    : new \DateTime();
             }
 
-            // prevent infinity loops
-            $hash = md5(serialize($items));
-            if ($hash === $this->lastHash) {
+            // if there was request and request data less than 2 then we suppose that it's end of fetching
+            // end return empty result
+            if ($result->count < 2 && $this->wasRequest) {
                 $items = [];
             }
 
-            $this->wasRequest = true;
-            $this->lastHash   = $hash;
+            $this->eventDispatcher->dispatch(
+                ProgressEvent::POST_STEP_IMPORT,
+                new ProgressEvent(null, ['offset' => [$this->property => $this->startTime->getTimestamp()]])
+            );
 
-            return $items;
-        } catch (\Exception $exception) {
-            throw new PagerException($this->startTime->getTimestamp(), $exception);
+            // update start time for next request
+            $this->startTime = $result->end_time
+                ? new \DateTime("@{$result->end_time}")
+                : new \DateTime();
         }
+
+        // prevent infinity loops
+        $hash = md5(serialize($items));
+        if ($hash === $this->lastHash) {
+            $items = [];
+        }
+
+        $this->wasRequest = true;
+        $this->lastHash   = $hash;
+
+        return $items;
     }
 }

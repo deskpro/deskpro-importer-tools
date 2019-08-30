@@ -29,6 +29,7 @@
 namespace DeskPRO\ImporterTools;
 
 use Application\DeskPRO\Entity\Job;
+use DeskPRO\Bundle\ImportBundle\Event\ProgressEvent;
 use DeskPRO\Component\Util\StringUtils;
 use DeskPRO\ImporterTools\Exceptions\PagerException;
 use DeskPRO\ImporterTools\Helpers\AttachmentHelper;
@@ -38,7 +39,6 @@ use DeskPRO\ImporterTools\Helpers\FormatHelper;
 use DeskPRO\ImporterTools\Helpers\OutputHelper;
 use DeskPRO\ImporterTools\Helpers\ProgressHelper;
 use DeskPRO\ImporterTools\Helpers\WriteHelper;
-use Orb\Util\Arrays;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -75,14 +75,14 @@ abstract class AbstractImporter implements ImporterInterface
     protected $job;
 
     /**
-     * @var array
-     */
-    protected $failedPages = [];
-
-    /**
      * @var string
      */
     protected $currentStep;
+
+    /**
+     * @var array
+     */
+    protected $offsets = [];
 
     /**
      * Constructor.
@@ -92,44 +92,34 @@ abstract class AbstractImporter implements ImporterInterface
      */
     public function __construct(LoggerInterface $logger, ContainerInterface $container)
     {
-        $this->logger    = $logger;
-        $this->container = $container;
-        $this->importerDispatcher = $container->get('dp.importer.event_dispatcher');
+        $this->logger             = $logger;
+        $this->container          = $container;
+//        $this->importerDispatcher = $container->get('dp.importer.event_dispatcher');
     }
 
     /**
-     * @return void
+     * @param array $importedSteps
+     * @param array $offsets
      *
+     * @return void
      * @throws \Exception
      */
-    public function runImport() {
-        if ($this->job instanceof Job) {
-            $importedSteps     = $this->job->getDataKey('imported_steps');
-            $this->failedPages = $this->job->getDataKey('failed_pages', []);
-        }
+    public function runImport($importedSteps = [], $offsets = []) {
+        $this->offsets = $offsets;
 
         foreach ($this->getImportSteps() as $step) {
             $this->currentStep = $step;
             $method            = StringUtils::toCamelCase($step).'Import';
-            try {
-                if (!method_exists($this, $method)) {
-                    throw new MethodNotImplementedException($step);
-                }
 
-                if (isset($importedSteps) && in_array($step, $importedSteps, true)) {
-                    continue;
-                }
-
-                $this->$method();
-            } catch (\Exception $exception) {
-                $this->logger->error($exception->getMessage());
-
-                if ($exception instanceof PagerException) {
-                    $exception->setFailedStepName($step);
-                }
-
-                throw $exception;
+            if (!method_exists($this, $method)) {
+                throw new MethodNotImplementedException($step);
             }
+
+            if (!empty($importedSteps) && in_array($step, $importedSteps, true)) {
+                continue;
+            }
+
+            $this->$method($this->getCurrentOffset());
         }
     }
 
@@ -141,14 +131,6 @@ abstract class AbstractImporter implements ImporterInterface
         $this->helpers[get_class($helper)] = $helper;
 
         return $this;
-    }
-
-    /**
-     * @param Job $job
-     */
-    public function setJob(Job $job)
-    {
-        $this->job = $job;
     }
 
     /**
@@ -231,10 +213,10 @@ abstract class AbstractImporter implements ImporterInterface
      *
      * @return mixed
      */
-    protected function getCurrentFailedPage($default = 1)
+    protected function getCurrentOffset($default = 1)
     {
-        return array_key_exists($this->currentStep, $this->failedPages)
-            ? $this->failedPages[$this->currentStep]
+        return array_key_exists($this->currentStep, $this->offsets)
+            ? $this->offsets[$this->currentStep]
             : $default;
     }
 }
