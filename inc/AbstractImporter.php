@@ -30,6 +30,7 @@ namespace DeskPRO\ImporterTools;
 
 use Application\DeskPRO\Entity\Job;
 use DeskPRO\Component\Util\StringUtils;
+use DeskPRO\ImporterTools\Exceptions\PagerException;
 use DeskPRO\ImporterTools\Helpers\AttachmentHelper;
 use DeskPRO\ImporterTools\Helpers\CsvHelper;
 use DeskPRO\ImporterTools\Helpers\DbHelper;
@@ -37,8 +38,10 @@ use DeskPRO\ImporterTools\Helpers\FormatHelper;
 use DeskPRO\ImporterTools\Helpers\OutputHelper;
 use DeskPRO\ImporterTools\Helpers\ProgressHelper;
 use DeskPRO\ImporterTools\Helpers\WriteHelper;
+use Orb\Util\Arrays;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Intl\Exception\MethodNotImplementedException;
 
 /**
@@ -57,6 +60,11 @@ abstract class AbstractImporter implements ImporterInterface
     protected $container;
 
     /**
+     * @var EventDispatcher
+     */
+    protected $importerDispatcher;
+
+    /**
      * @var array
      */
     protected $helpers;
@@ -65,6 +73,16 @@ abstract class AbstractImporter implements ImporterInterface
      * @var Job
      */
     protected $job;
+
+    /**
+     * @var array
+     */
+    protected $failedPages = [];
+
+    /**
+     * @var string
+     */
+    protected $currentStep;
 
     /**
      * Constructor.
@@ -76,6 +94,7 @@ abstract class AbstractImporter implements ImporterInterface
     {
         $this->logger    = $logger;
         $this->container = $container;
+        $this->importerDispatcher = $container->get('dp.importer.event_dispatcher');
     }
 
     /**
@@ -85,11 +104,13 @@ abstract class AbstractImporter implements ImporterInterface
      */
     public function runImport() {
         if ($this->job instanceof Job) {
-            $importedSteps = $this->job->getDataKey('imported_steps');
+            $importedSteps     = $this->job->getDataKey('imported_steps');
+            $this->failedPages = $this->job->getDataKey('failed_pages', []);
         }
 
         foreach ($this->getImportSteps() as $step) {
-            $method = StringUtils::toCamelCase($step).'Import';
+            $this->currentStep = $step;
+            $method            = StringUtils::toCamelCase($step).'Import';
             try {
                 if (!method_exists($this, $method)) {
                     throw new MethodNotImplementedException($step);
@@ -102,6 +123,10 @@ abstract class AbstractImporter implements ImporterInterface
                 $this->$method();
             } catch (\Exception $exception) {
                 $this->logger->error($exception->getMessage());
+
+                if ($exception instanceof PagerException) {
+                    $exception->setFailedStepName($step);
+                }
 
                 throw $exception;
             }
@@ -199,5 +224,17 @@ abstract class AbstractImporter implements ImporterInterface
     protected function csv()
     {
         return $this->getHelper(CsvHelper::class);
+    }
+
+    /**
+     * @param int $default
+     *
+     * @return mixed
+     */
+    protected function getCurrentFailedPage($default = 1)
+    {
+        return array_key_exists($this->currentStep, $this->failedPages)
+            ? $this->failedPages[$this->currentStep]
+            : $default;
     }
 }

@@ -3,6 +3,7 @@
 namespace DeskPRO\ImporterTools\Importers\Spiceworks;
 
 use DeskPRO\ImporterTools\AbstractImporter;
+use DeskPRO\ImporterTools\Exceptions\PagerException;
 
 /**
  * Class SpiceworksImporter.
@@ -72,6 +73,9 @@ class SpiceworksImporter extends AbstractImporter
             FROM users
             ORDER BY users.id ASC
 SQL
+        ,
+            [],
+            $this->getCurrentFailedPage()
         );
 
         foreach ($pager as $n) {
@@ -109,6 +113,9 @@ SQL
             FROM tickets AS t
             ORDER BY t.id ASC
 SQL
+        ,
+            [],
+            $this->getCurrentFailedPage()
         );
 
         foreach ($pager as $n) {
@@ -144,30 +151,35 @@ SQL
 SQL
                 , ['ticket_id' => $n['id']]);
 
-            foreach ($messagePager as $m) {
-                $message = [
-                    'oid'          => $m['id'],
-                    'message'      => $m['body'] ?: '(empty message)',
-                    'date_created' => $this->formatter()->getFormattedDate($m['created_at']),
-                    'is_note'      => $m['is_public'] === 't',
-                    'person'       => $m['created_by']
-                ];
+            try {
+                foreach ($messagePager as $m) {
+                    $message = [
+                        'oid'          => $m['id'],
+                        'message'      => $m['body'] ?: '(empty message)',
+                        'date_created' => $this->formatter()->getFormattedDate($m['created_at']),
+                        'is_note'      => $m['is_public'] === 't',
+                        'person'       => $m['created_by']
+                    ];
 
-                if ($m['attachment_name']) {
-                    $filePath = rtrim($this->attachmentsPath , '/') .'/'.$n['id'].'/'.$m['id'].'-'.$m['attachment_name'];
-                    if (file_exists($filePath)) {
-                        $message['attachments'] = [[
-                            'person'       => $m['created_by'],
-                            'blob_path'    => $filePath,
-                            'file_name'    => $m['attachment_name'],
-                            'content_type' => $m['attachment_content_type']
-                        ]];
-                    } else {
-                        $this->output()->warning("Missing file attachment on ticket {$n['id']}: {$m['attachment_name']} -- Expected: $filePath");
+                    if ($m['attachment_name']) {
+                        $filePath = rtrim($this->attachmentsPath , '/') .'/'.$n['id'].'/'.$m['id'].'-'.$m['attachment_name'];
+                        if (file_exists($filePath)) {
+                            $message['attachments'] = [[
+                                'person'       => $m['created_by'],
+                                'blob_path'    => $filePath,
+                                'file_name'    => $m['attachment_name'],
+                                'content_type' => $m['attachment_content_type']
+                            ]];
+                        } else {
+                            $this->output()
+                                ->warning("Missing file attachment on ticket {$n['id']}: {$m['attachment_name']} -- Expected: $filePath");
+                        }
                     }
-                }
 
-                $ticket['messages'][] = $message;
+                    $ticket['messages'][] = $message;
+                }
+            } catch (\Exception $exception) {
+                throw new PagerException($pager->getPageNum(), $exception);
             }
 
             $this->writer()->writeTicket($n['id'], $ticket);

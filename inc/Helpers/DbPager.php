@@ -28,12 +28,14 @@
 
 namespace DeskPRO\ImporterTools\Helpers;
 
+use DeskPRO\ImporterTools\AbstractPager;
+use DeskPRO\ImporterTools\Exceptions\PagerException;
 use Doctrine\DBAL\Connection;
 
 /**
  * Class DbPager.
  */
-class DbPager
+class DbPager extends AbstractPager
 {
     /**
      * @var Connection
@@ -58,7 +60,7 @@ class DbPager
     /**
      * @var int
      */
-    private $pageNum = 1;
+    private $pageNum;
 
     /**
      * @var int
@@ -71,16 +73,23 @@ class DbPager
      * @param Connection $connection
      * @param string     $query
      * @param array      $params
+     * @param int        $pageNum
      * @param int        $perPage
      */
-    public function __construct(Connection $connection, $query, array $params = [], $perPage = 1000)
-    {
+    public function __construct(
+        Connection $connection,
+        $query,
+        array $params = [],
+        $pageNum = 1,
+        $perPage = 1000
+    ) {
         if ($perPage < 1) {
             throw new \RuntimeException('Per page number should be greater than 1.');
         }
 
         $this->connection = $connection;
         $this->query      = $query;
+        $this->pageNum    = $pageNum;
         $this->perPage    = $perPage;
         $this->params     = $params;
         $this->types      = DbHelper::getParamTypes($params);
@@ -88,28 +97,31 @@ class DbPager
 
     /**
      * @return array
+     * @throws PagerException
      */
     public function next()
     {
-        $limit     = ($this->pageNum - 1) * $this->perPage;
-        $statement = $this->connection->executeQuery("{$this->query} LIMIT $limit, {$this->perPage}", $this->params, $this->types);
+        try {
+            $limit     = ($this->pageNum - 1) * $this->perPage;
+            $statement = $this->connection->executeQuery(
+                "{$this->query} LIMIT $limit, {$this->perPage}",
+                $this->params,
+                $this->types
+            );
 
-        ++$this->pageNum;
+            ++$this->pageNum;
 
-        return $statement->fetchAll();
+            return $statement->fetchAll();
+        } catch (\Exception $exception) {
+            throw new PagerException($this->pageNum, $exception);
+        }
     }
 
     /**
-     * @param mixed $pager
-     *
-     * @return \Generator
+     * @return int
      */
-    public static function getIterator($pager)
+    public function getPageNum()
     {
-        while ($data = $pager->next()) {
-            foreach ($data as $n) {
-                yield $n;
-            }
-        }
+        return $this->pageNum;
     }
 }

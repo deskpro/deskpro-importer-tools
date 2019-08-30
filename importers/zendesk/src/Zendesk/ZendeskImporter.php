@@ -148,11 +148,12 @@ class ZendeskImporter extends AbstractImporter
 
     /**
      * @return void
+     * @throws \Exception
      */
     protected function personImport()
     {
         $this->progress()->startPersonImport();
-        $pager = $this->reader->getPersonPager($this->startTime);
+        $pager = $this->reader->getPersonPager($this->getStartTime());
 
         foreach ($pager as $n) {
             $this->writePerson($n);
@@ -161,6 +162,7 @@ class ZendeskImporter extends AbstractImporter
 
     /**
      * @return void
+     * @throws \Exception
      */
     protected function ticketImport()
     {
@@ -175,7 +177,14 @@ class ZendeskImporter extends AbstractImporter
             'deleted' => 'hidden.deleted',
         ];
 
-        $pager = $this->reader->getTicketPager($this->startTime);
+        if (empty($this->ticketCustomDefMap)) {
+            foreach ($this->reader->getTicketFields() as $n) {
+                $customDef = $this->mapCustomDef($n);
+                $this->ticketCustomDefMap[$n['id']] = $customDef['title'];
+            }
+        }
+
+        $pager = $this->reader->getTicketPager($this->getStartTime());
         foreach ($pager as $n) {
             $ticket = [
                 'subject'      => $n['subject'] ?: 'No Subject',
@@ -267,11 +276,12 @@ class ZendeskImporter extends AbstractImporter
 
     /**
      * @return void
+     * @throws \Exception
      */
     protected function articleImport()
     {
         $this->progress()->startArticleImport();
-        $pager = $this->reader->getArticlePager($this->startTime);
+        $pager = $this->reader->getArticlePager($this->getStartTime());
 
         foreach ($pager as $n) {
             $article = [
@@ -426,5 +436,18 @@ class ZendeskImporter extends AbstractImporter
         } else {
             $this->writer()->writeUser($user['id'], $person, false);
         }
+    }
+
+    /**
+     * @return \DateTime
+     * @throws \Exception
+     */
+    protected function getStartTime()
+    {
+        $failedPage = $this->getCurrentFailedPage(null);
+
+        return $failedPage !== null
+            ? new \DateTime("@{$failedPage}")
+            : $this->startTime;
     }
 }

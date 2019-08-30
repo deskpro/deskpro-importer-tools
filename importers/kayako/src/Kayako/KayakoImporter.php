@@ -3,6 +3,7 @@
 namespace DeskPRO\ImporterTools\Importers\Kayako;
 
 use DeskPRO\ImporterTools\AbstractImporter;
+use DeskPRO\ImporterTools\Exceptions\PagerException;
 
 /**
  * Class KayakoImporter.
@@ -64,7 +65,11 @@ class KayakoImporter extends AbstractImporter
         $this->progress()->startOrganizationImport();
 
         if ($this->db()->tableExists('swuserorganizations')) {
-            $pager = $this->db()->getPager('SELECT * FROM swuserorganizations');
+            $pager = $this->db()->getPager(
+                'SELECT * FROM swuserorganizations',
+                [],
+                $this->getCurrentFailedPage()
+            );
 
             foreach ($pager as $n) {
                 $organization = [
@@ -291,7 +296,16 @@ class KayakoImporter extends AbstractImporter
         }
 
         // get tickets
-        $pager = $this->db()->getPager('SELECT * FROM swtickets');
+        $pager = $this->db()->getPager('SELECT * FROM swtickets', [], $this->getCurrentFailedPage());
+
+        if (empty($this->userAgentsMapping)) {
+            try {
+                $this->fillAgentsMapping();
+            } catch (\Exception $exception) {
+                throw new PagerException($pager->getPageNum(), $exception);
+            }
+        }
+
         foreach ($pager as $n) {
             if (isset($this->userAgentsMapping[$n['userid']])) {
                 $person = $this->writer()->agentOid($this->userAgentsMapping[$n['userid']]);
@@ -330,134 +344,142 @@ class KayakoImporter extends AbstractImporter
             }
 
             // get ticket messages
-            $messagePager = $this->db()->getPager('SELECT * FROM swticketposts WHERE ticketid = :ticket_id', [
-                'ticket_id' => $n['ticketid'],
-            ]);
+            $messagePager = $this->db()->getPager(
+                'SELECT * FROM swticketposts WHERE ticketid = :ticket_id',
+                ['ticket_id' => $n['ticketid']],
+                $this->getCurrentFailedPage()
+            );
 
-            foreach ($messagePager as $m) {
-                if (!$m['contents']) {
-                    $m['contents'] = 'empty content';
-                }
-
-                // multiline formatting
-                $m['contents'] = str_replace("\n", '<br/>', $m['contents']);
-
-                $person = null;
-                if ($m['userid']) {
-                    if (isset($this->userAgentsMapping[$m['userid']])) {
-                        $person = $this->writer()->agentOid($this->userAgentsMapping[$m['userid']]);
-                    } else {
-                        $person = $this->writer()->userOid($m['userid']);
+            try {
+                foreach ($messagePager as $m) {
+                    if (!$m['contents']) {
+                        $m['contents'] = 'empty content';
                     }
-                } elseif ($m['staffid']) {
-                    $person = $this->writer()->agentOid($m['staffid']);
-                } elseif ($m['email']) {
-                    $person = $m['email'];
-                } else {
-                    $person = 'imported.message.' . $m['ticketpostid'] . '@example.com';
-                }
 
-                $message = [
-                    'oid'          => 'post_' . $m['ticketpostid'],
-                    'person'       => $person,
-                    'message'      => $m['contents'],
-                    'date_created' => date('c', $m['dateline']),
-                    'attachments'  => [],
-                ];
+                    // multiline formatting
+                    $m['contents'] = str_replace("\n", '<br/>', $m['contents']);
 
-                // get message attachments
-                if ($this->db()->columnExists('swattachments', 'linktypeid')) {
-                    $attachments = $this->db()->findAll('SELECT * FROM swattachments WHERE ticketid = :ticket_id AND linktypeid = :message_id', [
-                        'ticket_id'  => $n['ticketid'],
-                        'message_id' => $m['ticketpostid'],
-                    ]);
-                } else {
-                    $attachments = $this->db()->findAll('SELECT * FROM swattachments WHERE ticketid = :ticket_id AND ticketpostid = :message_id', [
-                        'ticket_id'  => $n['ticketid'],
-                        'message_id' => $m['ticketpostid'],
-                    ]);
-                }
+                    $person = null;
+                    if ($m['userid']) {
+                        if (isset($this->userAgentsMapping[$m['userid']])) {
+                            $person = $this->writer()->agentOid($this->userAgentsMapping[$m['userid']]);
+                        } else {
+                            $person = $this->writer()->userOid($m['userid']);
+                        }
+                    } elseif ($m['staffid']) {
+                        $person = $this->writer()->agentOid($m['staffid']);
+                    } elseif ($m['email']) {
+                        $person = $m['email'];
+                    } else {
+                        $person = 'imported.message.' . $m['ticketpostid'] . '@example.com';
+                    }
 
-                foreach ($attachments as $a) {
-                    $attachment = [
-                        'oid'          => $a['attachmentid'],
-                        'file_name'    => $a['filename'] ?: ('attachment'.$a['attachmentid']),
-                        'content_type' => $a['filetype'],
-                        'blob_data'    => '',
+                    $message = [
+                        'oid'          => 'post_' . $m['ticketpostid'],
+                        'person'       => $person,
+                        'message'      => $m['contents'],
+                        'date_created' => date('c', $m['dateline']),
+                        'attachments'  => [],
                     ];
 
-                    $attachmentChunks = $this->db()->findAll('SELECT * FROM swattachmentchunks WHERE attachmentid = :attachment_id', [
-                        'attachment_id' => $a['attachmentid'],
-                    ]);
-
-                    foreach ($attachmentChunks as $c) {
-                        if (isset($c['notbase64']) && $c['notbase64']) {
-                            $attachment['blob_data'] .= $c['contents'];
-                        } elseif (!isset($c['notbase64'])) {
-                            $attachment['blob_data'] .= $c['contents'];
-                        }
-                    }
-
-                    if (!$attachment['blob_data']) {
-                        // skip attachments w/o content
-                        continue;
+                    // get message attachments
+                    if ($this->db()->columnExists('swattachments', 'linktypeid')) {
+                        $attachments = $this->db()->findAll('SELECT * FROM swattachments WHERE ticketid = :ticket_id AND linktypeid = :message_id', [
+                            'ticket_id'  => $n['ticketid'],
+                            'message_id' => $m['ticketpostid'],
+                        ]);
                     } else {
-                        $attachment['blob_data'] = base64_encode($attachment['blob_data']);
+                        $attachments = $this->db()->findAll('SELECT * FROM swattachments WHERE ticketid = :ticket_id AND ticketpostid = :message_id', [
+                            'ticket_id'  => $n['ticketid'],
+                            'message_id' => $m['ticketpostid'],
+                        ]);
                     }
 
-                    $message['attachments'][] = $attachment;
+                    foreach ($attachments as $a) {
+                        $attachment = [
+                            'oid'          => $a['attachmentid'],
+                            'file_name'    => $a['filename'] ?: ('attachment'.$a['attachmentid']),
+                            'content_type' => $a['filetype'],
+                            'blob_data'    => '',
+                        ];
+
+                        $attachmentChunks = $this->db()->findAll('SELECT * FROM swattachmentchunks WHERE attachmentid = :attachment_id', [
+                            'attachment_id' => $a['attachmentid'],
+                        ]);
+
+                        foreach ($attachmentChunks as $c) {
+                            if (isset($c['notbase64']) && $c['notbase64']) {
+                                $attachment['blob_data'] .= $c['contents'];
+                            } elseif (!isset($c['notbase64'])) {
+                                $attachment['blob_data'] .= $c['contents'];
+                            }
+                        }
+
+                        if (!$attachment['blob_data']) {
+                            // skip attachments w/o content
+                            continue;
+                        } else {
+                            $attachment['blob_data'] = base64_encode($attachment['blob_data']);
+                        }
+
+                        $message['attachments'][] = $attachment;
+                    }
+
+                    $ticket['messages'][] = $message;
                 }
 
-                $ticket['messages'][] = $message;
-            }
-
-            // get ticket notes
-            if ($this->db()->columnExists('swticketnotes', 'linktype')) {
-                $notesPager = $this->db()
-                    ->getPager('SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id', [
-                        'ticket_id' => $n['ticketid'],
-                    ]);
-            } else {
-                $notesPager = $this->db()->getPager('SELECT * FROM swticketnotes WHERE typeid = :ticket_id', [
-                    'ticket_id' => $n['ticketid'],
-                ]);
-            }
-
-            foreach ($notesPager as $m) {
-                if (empty($m['staffid']) || empty($m['bystaffid'])) {
-                    continue;
-                }
-                if (!$m['note']) {
-                    $m['note'] = 'empty content';
+                // get ticket notes
+                if ($this->db()->columnExists('swticketnotes', 'linktype')) {
+                    $notesPager = $this->db()
+                        ->getPager(
+                            'SELECT * FROM swticketnotes WHERE linktype = 1 AND linktypeid = :ticket_id',
+                            ['ticket_id' => $n['ticketid']]
+                        );
+                } else {
+                    $notesPager = $this->db()->getPager(
+                        'SELECT * FROM swticketnotes WHERE typeid = :ticket_id',
+                        ['ticket_id' => $n['ticketid']]
+                    );
                 }
 
-                $note = [
-                    'oid'          => 'note_' . $m['ticketnoteid'],
-                    'message'      => $m['note'],
-                    'is_note'      => true,
-                    'date_created' => date('c', $m['dateline']),
-                ];
+                foreach ($notesPager as $m) {
+                    if (empty($m['staffid']) || empty($m['bystaffid'])) {
+                        continue;
+                    }
+                    if (!$m['note']) {
+                        $m['note'] = 'empty content';
+                    }
 
-                if (isset($m['staffid'])) {
-                    $note['person'] = $this->writer()->agentOid($m['staffid']);
-                } elseif (isset($m['bystaffid'])) {
-                    $note['person'] = $this->writer()->agentOid($m['bystaffid']);
+                    $note = [
+                        'oid'          => 'note_' . $m['ticketnoteid'],
+                        'message'      => $m['note'],
+                        'is_note'      => true,
+                        'date_created' => date('c', $m['dateline']),
+                    ];
+
+                    if (isset($m['staffid'])) {
+                        $note['person'] = $this->writer()->agentOid($m['staffid']);
+                    } elseif (isset($m['bystaffid'])) {
+                        $note['person'] = $this->writer()->agentOid($m['bystaffid']);
+                    }
+
+                    $ticket['messages'][] = $note;
                 }
 
-                $ticket['messages'][] = $note;
-            }
-
-            if (!$ticket['person']) {
-                // person is a mandatory field
-                // if it's not set on the ticket then try to get it from the first message
-                if (isset($ticket['messages'][0]['person'])) {
-                    $ticket['person'] = $ticket['messages'][0]['person'];
-                }
-
-                // otherwise generate a fake one to prevent validation errors
                 if (!$ticket['person']) {
-                    $ticket['person'] = 'imported.ticket.user.'.$n['ticketid'].'@example.com';
+                    // person is a mandatory field
+                    // if it's not set on the ticket then try to get it from the first message
+                    if (isset($ticket['messages'][0]['person'])) {
+                        $ticket['person'] = $ticket['messages'][0]['person'];
+                    }
+
+                    // otherwise generate a fake one to prevent validation errors
+                    if (!$ticket['person']) {
+                        $ticket['person'] = 'imported.ticket.user.'.$n['ticketid'].'@example.com';
+                    }
                 }
+            } catch (\Exception $exception) {
+                throw new PagerException($pager->getPageNum(), $exception);
             }
 
             $this->writer()->writeTicket($n['ticketid'], $ticket);
@@ -487,7 +509,11 @@ class KayakoImporter extends AbstractImporter
             1 => 'published',
         ];
 
-        $pager = $this->db()->getPager('SELECT * FROM swkbarticles');
+        $pager = $this->db()->getPager(
+            'SELECT * FROM swkbarticles',
+            [],
+            $this->getCurrentFailedPage()
+        );
         foreach ($pager as $n) {
             if ($this->db()->columnExists('swkbarticlelinks', 'linktypeid')) {
                 $categories = $this->db()->findAll('SELECT * FROM swkbarticlelinks WHERE kbarticleid = :article_id AND linktypeid > 0', [
@@ -520,13 +546,19 @@ class KayakoImporter extends AbstractImporter
             }
 
             // get article content
-            $contentPager = $this->db()->getPager('SELECT * FROM swkbarticledata WHERE kbarticleid = :article_id', [
-                'article_id' => $n['kbarticleid'],
-            ]);
+            $contentPager = $this->db()->getPager(
+                'SELECT * FROM swkbarticledata WHERE kbarticleid = :article_id',
+                ['article_id' => $n['kbarticleid']]
+            );
 
-            foreach ($contentPager as $c) {
-                $article['content'] .= $c['contents'];
+            try {
+                foreach ($contentPager as $c) {
+                    $article['content'] .= $c['contents'];
+                }
+            } catch (\Exception $exception) {
+                new PagerException($pager->getPageNum(), $exception);
             }
+
 
             if (!$article['content']) {
                 $article['content'] = 'no content';
@@ -557,7 +589,11 @@ class KayakoImporter extends AbstractImporter
                 2 => 'published',
             ];
 
-            $pager = $this->db()->getPager('SELECT * FROM swnewsitems');
+            $pager = $this->db()->getPager(
+                'SELECT * FROM swnewsitems',
+                [],
+                $this->getCurrentFailedPage()
+            );
             foreach ($pager as $n) {
                 $news = [
                     'title'        => $n['subject'],
@@ -568,9 +604,11 @@ class KayakoImporter extends AbstractImporter
                 ];
 
                 // get news content
-                $contentPager = $this->db()->getPager('SELECT * FROM swnewsitemdata WHERE newsitemid = :news_id', [
-                    'news_id' => $n['newsitemid'],
-                ]);
+                $contentPager = $this->db()->getPager(
+                    'SELECT * FROM swnewsitemdata WHERE newsitemid = :news_id',
+                    ['news_id' => $n['newsitemid']],
+                    $this->getCurrentFailedPage()
+                );
 
                 foreach ($contentPager as $c) {
                     $news['content'] .= $c['contents'];
@@ -592,7 +630,11 @@ class KayakoImporter extends AbstractImporter
                 $this->writer()->writeNews($n['newsitemid'], $news);
             }
         } elseif ($this->db()->tableExists('swnews')) {
-            $pager = $this->db()->getPager('SELECT * FROM swnews');
+            $pager = $this->db()->getPager(
+                'SELECT * FROM swnews',
+                [],
+                $this->getCurrentFailedPage()
+            );
             foreach ($pager as $n) {
                 $news = [
                     'title'        => $n['subject'],
@@ -603,9 +645,11 @@ class KayakoImporter extends AbstractImporter
                 ];
 
                 // get news content
-                $contentPager = $this->db()->getPager('SELECT * FROM swnewsdata WHERE newsid = :news_id', [
-                    'news_id' => $n['newsid'],
-                ]);
+                $contentPager = $this->db()->getPager(
+                    'SELECT * FROM swnewsdata WHERE newsid = :news_id',
+                    ['news_id' => $n['newsid']],
+                    $this->getCurrentFailedPage()
+                );
 
                 foreach ($contentPager as $c) {
                     $news['content'] .= $c['contents'];
@@ -628,7 +672,11 @@ class KayakoImporter extends AbstractImporter
         $this->progress()->startChatImport();
 
         if ($this->db()->tableExists('swchatobjects')) {
-            $pager = $this->db()->getPager('SELECT * FROM swchatobjects');
+            $pager = $this->db()->getPager(
+                'SELECT * FROM swchatobjects',
+                [],
+                $this->getCurrentFailedPage()
+            );
             foreach ($pager as $n) {
                 $chat = [
                     'person'       => $n['userid'] ? $this->writer()->userOid($n['userid']) : $n['useremail'],
@@ -691,10 +739,13 @@ class KayakoImporter extends AbstractImporter
         ];
 
         $pager = $this->db()
-            ->getPager('SELECT * FROM swsettings WHERE section = :section AND vkey IN (:setting_names)', [
-                'section'       => 'settings',
-                'setting_names' => array_keys($settingMapping),
-            ]);
+            ->getPager(
+                'SELECT * FROM swsettings WHERE section = :section AND vkey IN (:setting_names)',
+                [
+                    'section'       => 'settings',
+                    'setting_names' => array_keys($settingMapping),
+                ],
+                $this->getCurrentFailedPage());
 
         foreach ($pager as $n) {
             $this->writer()->writeSetting($n['settingid'], [
@@ -716,13 +767,17 @@ class KayakoImporter extends AbstractImporter
     protected function getArticleCategories($parentId)
     {
         if ($this->db()->columnExists('swkbcategories', 'parentkbcategoryid')) {
-            $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id', [
-                'parent_id' => $parentId,
-            ]);
+            $pager = $this->db()->getPager(
+                'SELECT * FROM swkbcategories WHERE parentkbcategoryid = :parent_id',
+                ['parent_id' => $parentId],
+                $this->getCurrentFailedPage()
+            );
         } else {
-            $pager = $this->db()->getPager('SELECT * FROM swkbcategories WHERE parentcategoryid = :parent_id', [
-                'parent_id' => $parentId,
-            ]);
+            $pager = $this->db()->getPager(
+                'SELECT * FROM swkbcategories WHERE parentcategoryid = :parent_id',
+                ['parent_id' => $parentId],
+                $this->getCurrentFailedPage()
+            );
         }
 
         $categories = [];
@@ -735,5 +790,47 @@ class KayakoImporter extends AbstractImporter
         }
 
         return $categories;
+    }
+
+    /**
+     * @return void
+     */
+    protected function fillAgentsMapping()
+    {
+        $staffEmailsMapping = [];
+
+        $pager = $this->db()->getPager('SELECT * FROM swstaff');
+        foreach ($pager as $n) {
+            $staffId = $n['staffid'];
+            $email   = $n['email'];
+            if (!$this->formatter()->isEmailValid($email)) {
+                $email = 'imported.agent.'.$staffId.'@example.com';
+            }
+
+            $staffEmailsMapping[$email] = $staffId;
+        }
+
+        $pager = $this->db()->getPager('SELECT * FROM swusers');
+        foreach ($pager as $n) {
+            $userId = $n['userid'];
+
+            if ($this->db()->columnExists('swuseremails', 'linktypeid')) {
+                $emailsRows = $this->db()
+                    ->findAll('SELECT * FROM swuseremails WHERE linktypeid = :user_id', ['user_id' => $userId]);
+            } else {
+                $emailsRows = $this->db()
+                    ->findAll('SELECT * FROM swuseremails WHERE userid = :user_id', ['user_id' => $userId]);
+            }
+
+            foreach ($emailsRows as $emailsRow) {
+                $email = $emailsRow['email'];
+                if ($this->formatter()->isEmailValid($email) && isset($staffEmailsMapping[$email])) {
+                    $this->userAgentsMapping[$userId] = $staffEmailsMapping[$email];
+
+                    // ignore writing user as we already have the agent with this email address
+                    continue 2;
+                }
+            }
+        }
     }
 }

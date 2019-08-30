@@ -28,13 +28,15 @@
 
 namespace DeskPRO\ImporterTools\Importers\Zendesk;
 
+use DeskPRO\ImporterTools\AbstractPager;
+use DeskPRO\ImporterTools\Exceptions\PagerException;
 use DeskPRO\ImporterTools\Importers\Zendesk\Request\Request;
 use DeskPRO\ImporterTools\Importers\Zendesk\Request\RequestAdapterInterface;
 
 /**
  * Class IncrementalPager.
  */
-class IncrementalPager
+class IncrementalPager extends AbstractPager
 {
     /**
      * @var RequestAdapterInterface
@@ -84,57 +86,48 @@ class IncrementalPager
 
     /**
      * @return array
+     * @throws PagerException
      */
-    public function getNext()
+    public function next()
     {
-        $this->request->setParams([
-            'start_time' => $this->startTime->getTimestamp(),
-        ]);
+        try {
+            $this->request->setParams([
+                'start_time' => $this->startTime->getTimestamp(),
+            ]);
 
-        $items  = [];
-        $result = $this->adapter->doRequest($this->request);
-        if ($result) {
-            if (is_array($result->{$this->property})) {
-                foreach ($result->{$this->property} as $item) {
-                    $items[] = ZendeskReader::toArray($item);
+            $items  = [];
+            $result = $this->adapter->doRequest($this->request);
+            if ($result) {
+                if (is_array($result->{$this->property})) {
+                    foreach ($result->{$this->property} as $item) {
+                        $items[] = ZendeskReader::toArray($item);
+                    }
                 }
+
+                // if there was request and request data less than 2 then we suppose that it's end of fetching
+                // end return empty result
+                if ($result->count < 2 && $this->wasRequest) {
+                    $items = [];
+                }
+
+                // update start time for next request
+                $this->startTime = $result->end_time
+                    ? new \DateTime("@{$result->end_time}")
+                    : new \DateTime();
             }
 
-            // if there was request and request data less than 2 then we suppose that it's end of fetching
-            // end return empty result
-            if ($result->count < 2 && $this->wasRequest) {
+            // prevent infinity loops
+            $hash = md5(serialize($items));
+            if ($hash === $this->lastHash) {
                 $items = [];
             }
 
-            // update start time for next request
-            $this->startTime = $result->end_time
-                ? new \DateTime("@{$result->end_time}")
-                : new \DateTime();
-        }
+            $this->wasRequest = true;
+            $this->lastHash   = $hash;
 
-        // prevent infinity loops
-        $hash = md5(serialize($items));
-        if ($hash === $this->lastHash) {
-            $items = [];
-        }
-
-        $this->wasRequest = true;
-        $this->lastHash   = $hash;
-
-        return $items;
-    }
-
-    /**
-     * @param mixed $pager
-     *
-     * @return \Generator
-     */
-    public static function getIterator($pager)
-    {
-        while ($data = $pager->getNext()) {
-            foreach ($data as $n) {
-                yield $n;
-            }
+            return $items;
+        } catch (\Exception $exception) {
+            throw new PagerException($this->startTime->getTimestamp(), $exception);
         }
     }
 }
