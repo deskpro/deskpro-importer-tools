@@ -2,7 +2,6 @@
 
 namespace DeskPRO\ImporterTools;
 
-use DeskPRO\ImporterTools\Exceptions\PagerException;
 use Generator;
 
 /**
