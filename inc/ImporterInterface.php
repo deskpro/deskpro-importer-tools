@@ -44,9 +44,13 @@ interface ImporterInterface
     public function testConfig();
 
     /**
+     * @param array $importedSteps
+     * @param array $offsets
+     *
+     * @return void
      * @throws \Exception
      */
-    public function runImport();
+    public function runImport($importedSteps = [], $offsets = []);
 
     /**
      * @param mixed $helper

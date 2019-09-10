@@ -32,6 +32,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class DbHelper.
@@ -54,13 +55,19 @@ class DbHelper
     private $connection;
 
     /**
+     * @var EventDispatcherInterface
+     */
+    private $eventDispatcher;
+
+    /**
      * Constructor.
      *
      * @param LoggerInterface $logger
      */
-    public function __construct(LoggerInterface $logger)
+    public function __construct(LoggerInterface $logger, EventDispatcherInterface $eventDispatcher)
     {
-        $this->logger = $logger;
+        $this->logger          = $logger;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
@@ -96,15 +103,17 @@ class DbHelper
     }
 
     /**
+     * @param string $step
      * @param string $query
      * @param array  $params
+     * @param int    $pageNum
      * @param int    $perPage
      *
      * @return DbPager
      */
-    public function getPager($query, array $params = [], $perPage = 1000)
+    public function getPager($step, $query, array $params = [], $pageNum = 1, $perPage = 1000)
     {
-        return DbPager::getIterator(new DbPager($this->connection, $query, $params, $perPage));
+        return DbPager::getIterator(new DbPager($this->connection, $this->eventDispatcher, $step, $query, $params, $pageNum, $perPage));
     }
 
     /**

@@ -28,6 +28,7 @@
 
 namespace DeskPRO\ImporterTools;
 
+use DeskPRO\Component\Util\StringUtils;
 use DeskPRO\ImporterTools\Helpers\AttachmentHelper;
 use DeskPRO\ImporterTools\Helpers\CsvHelper;
 use DeskPRO\ImporterTools\Helpers\DbHelper;
@@ -37,6 +38,7 @@ use DeskPRO\ImporterTools\Helpers\ProgressHelper;
 use DeskPRO\ImporterTools\Helpers\WriteHelper;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Intl\Exception\MethodNotImplementedException;
 
 /**
  * Class AbstractImporter.
@@ -59,6 +61,11 @@ abstract class AbstractImporter implements ImporterInterface
     protected $helpers;
 
     /**
+     * @var string
+     */
+    protected $currentStep;
+
+    /**
      * Constructor.
      *
      * @param LoggerInterface    $logger
@@ -66,8 +73,31 @@ abstract class AbstractImporter implements ImporterInterface
      */
     public function __construct(LoggerInterface $logger, ContainerInterface $container)
     {
-        $this->logger    = $logger;
-        $this->container = $container;
+        $this->logger             = $logger;
+        $this->container          = $container;
+    }
+
+    /**
+     * @param array $importedSteps
+     * @param array $offsets
+     *
+     * @return void
+     * @throws \Exception
+     */
+    public function runImport($importedSteps = [], $offsets = []) {
+        foreach ($this->getImportSteps() as $step) {
+            $method = StringUtils::toCamelCase($step).'Import';
+
+            if (!method_exists($this, $method)) {
+                throw new MethodNotImplementedException($step);
+            }
+
+            if (!empty($importedSteps) && in_array($step, $importedSteps, true)) {
+                continue;
+            }
+
+            $this->$method($this->getStepOffset($step, $offsets));
+        }
     }
 
     /**
@@ -79,6 +109,11 @@ abstract class AbstractImporter implements ImporterInterface
 
         return $this;
     }
+
+    /**
+     * @return array
+     */
+    abstract protected function getImportSteps();
 
     /**
      * @param string $class
@@ -148,5 +183,19 @@ abstract class AbstractImporter implements ImporterInterface
     protected function csv()
     {
         return $this->getHelper(CsvHelper::class);
+    }
+
+    /**
+     * @param string $step
+     * @param array  $offsets
+     * @param int    $default
+     *
+     * @return int
+     */
+    protected function getStepOffset($step, $offsets, $default = 1)
+    {
+        return array_key_exists($step, $offsets)
+            ? $offsets[$step]
+            : $default;
     }
 }

@@ -48,19 +48,37 @@ class SpiceworksImporter extends AbstractImporter
     /**
      * {@inheritdoc}
      */
-    public function runImport()
+    protected function getImportSteps()
     {
-        //--------------------
-        // Users
-        //--------------------
+        return [
+            'person',
+            'ticket',
+        ];
+    }
 
+    //---------------------
+    // Import step handlers
+    //---------------------
+
+    /**
+     * @param int $offset
+     *
+     * @return void
+     */
+    protected function personImport($offset)
+    {
         $this->progress()->startPersonImport();
-        $pager = $this->db()->getPager(<<<SQL
-            SELECT
-                users.id, users.first_name, users.last_name, users.email, users.role
-            FROM users
-            ORDER BY users.id ASC
+        $pager = $this->db()->getPager(
+            'person',
+            <<<SQL
+                SELECT
+                    users.id, users.first_name, users.last_name, users.email, users.role
+                FROM users
+                ORDER BY users.id ASC
 SQL
+        ,
+            [],
+            $offset
         );
 
         foreach ($pager as $n) {
@@ -81,21 +99,30 @@ SQL
                 $this->writer()->writeUser($n['id'], $person, false);
             }
         }
+    }
 
-        //--------------------
-        // Tickets and messages
-        //--------------------
-
+    /**
+     * @param int $offset
+     *
+     * @return void
+     */
+    protected function ticketImport($offset)
+    {
         $this->progress()->startTicketImport();
-        $pager = $this->db()->getPager(<<<SQL
-            SELECT
-                t.id, t.summary, t.description, t.status,
-                t.priority, t.created_at, t.updated_at, t.closed_at,
-                t.created_by, t.assigned_to, t.category, t.status_updated_at,
-                t.created_by, t.assigned_to
-            FROM tickets AS t
-            ORDER BY t.id ASC
+        $pager = $this->db()->getPager(
+            'ticket',
+            <<<SQL
+                SELECT
+                    t.id, t.summary, t.description, t.status,
+                    t.priority, t.created_at, t.updated_at, t.closed_at,
+                    t.created_by, t.assigned_to, t.category, t.status_updated_at,
+                    t.created_by, t.assigned_to
+                FROM tickets AS t
+                ORDER BY t.id ASC
 SQL
+        ,
+            [],
+            $offset
         );
 
         foreach ($pager as $n) {
@@ -120,16 +147,21 @@ SQL
             ];
 
             // messages
-            $messagePager = $this->db()->getPager(<<<SQL
-                SELECT
-                    comments.id, comments.body, comments.created_at, comments.is_public,
-                    comments.attachment_content_type, comments.attachment_name,
-                    comments.created_by
-                FROM comments
-                WHERE comments.ticket_id = :ticket_id
-                ORDER BY comments.id ASC
+            $messagePager = $this->db()->getPager(
+                'ticket_messages',
+                <<<SQL
+                    SELECT
+                        comments.id, comments.body, comments.created_at, comments.is_public,
+                        comments.attachment_content_type, comments.attachment_name,
+                        comments.created_by
+                    FROM comments
+                    WHERE comments.ticket_id = :ticket_id
+                    ORDER BY comments.id ASC
 SQL
-                , ['ticket_id' => $n['id']]);
+                ,
+                ['ticket_id' => $n['id']]
+            );
+
 
             foreach ($messagePager as $m) {
                 $message = [
@@ -150,7 +182,8 @@ SQL
                             'content_type' => $m['attachment_content_type']
                         ]];
                     } else {
-                        $this->output()->warning("Missing file attachment on ticket {$n['id']}: {$m['attachment_name']} -- Expected: $filePath");
+                        $this->output()
+                            ->warning("Missing file attachment on ticket {$n['id']}: {$m['attachment_name']} -- Expected: $filePath");
                     }
                 }
 

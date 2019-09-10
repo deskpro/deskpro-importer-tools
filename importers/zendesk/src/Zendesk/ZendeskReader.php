@@ -36,6 +36,7 @@ use DeskPRO\ImporterTools\Importers\Zendesk\Request\RequestClientAdapter;
 use DeskPRO\ImporterTools\Importers\Zendesk\Request\RetryAfterException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Zendesk\API\HttpClient;
 
 /**
@@ -78,13 +79,20 @@ class ZendeskReader
     private $logger;
 
     /**
+     * @var EventDispatcherInterface
+     */
+    private $eventDispatcher;
+
+    /**
      * Constructor.
      *
-     * @param LoggerInterface $logger
+     * @param LoggerInterface          $logger
+     * @param EventDispatcherInterface $eventDispatcher
      */
-    public function __construct(LoggerInterface $logger)
+    public function __construct(LoggerInterface $logger, EventDispatcherInterface $eventDispatcher)
     {
-        $this->logger = $logger;
+        $this->logger          = $logger;
+        $this->eventDispatcher = $eventDispatcher;
     }
 
     /**
@@ -118,13 +126,13 @@ class ZendeskReader
      *
      * @throws RetryAfterException
      *
-     * @return IncrementalPager
+     * @return \Generator
      */
     public function getPersonPager(\DateTime $startTime)
     {
         $request = new Request(CoreAPI\Person::class, 'incrementalExport');
 
-        return IncrementalPager::getIterator(new IncrementalPager($this->adapter, $request, 'users', $startTime));
+        return IncrementalPager::getIterator(new IncrementalPager($this->eventDispatcher, $this->adapter, $request, 'users', $startTime));
     }
 
     /**
@@ -186,13 +194,13 @@ class ZendeskReader
      *
      * @throws RetryAfterException
      *
-     * @return IncrementalPager
+     * @return \Generator
      */
     public function getTicketPager(\DateTime $startTime = null)
     {
         $request = new Request(CoreAPI\Ticket::class, 'incrementalExport');
 
-        return IncrementalPager::getIterator(new IncrementalPager($this->adapter, $request, 'tickets', $startTime));
+        return IncrementalPager::getIterator(new IncrementalPager($this->eventDispatcher, $this->adapter, $request, 'tickets', $startTime));
     }
 
     /**
@@ -315,13 +323,13 @@ class ZendeskReader
      *
      * @param \DateTime|null $startTime
      *
-     * @return IncrementalPager
+     * @return \Generator
      */
     public function getArticlePager(\DateTime $startTime = null)
     {
         $request = new Request(HelpCenter\Article::class, 'incrementalExport');
 
-        return IncrementalPager::getIterator(new IncrementalPager($this->adapter, $request, 'articles', $startTime));
+        return IncrementalPager::getIterator(new IncrementalPager($this->eventDispatcher, $this->adapter, $request, 'articles', $startTime));
     }
 
     /**

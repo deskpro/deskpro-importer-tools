@@ -28,13 +28,16 @@
 
 namespace DeskPRO\ImporterTools\Importers\Zendesk;
 
+use DeskPRO\Bundle\ImportBundle\Event\ProgressEvent;
+use DeskPRO\ImporterTools\AbstractPager;
 use DeskPRO\ImporterTools\Importers\Zendesk\Request\Request;
 use DeskPRO\ImporterTools\Importers\Zendesk\Request\RequestAdapterInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Class IncrementalPager.
  */
-class IncrementalPager
+class IncrementalPager extends AbstractPager
 {
     /**
      * @var RequestAdapterInterface
@@ -67,25 +70,37 @@ class IncrementalPager
     private $lastHash = null;
 
     /**
+     * @var EventDispatcherInterface
+     */
+    private $eventDispatcher;
+
+    /**
      * Constructor.
      *
-     * @param RequestAdapterInterface $adapter
-     * @param Request                 $request
-     * @param string                  $property
-     * @param \DateTime               $startTime
+     * @param EventDispatcherInterface $eventDispatcher
+     * @param RequestAdapterInterface  $adapter
+     * @param Request                  $request
+     * @param string                   $property
+     * @param \DateTime                $startTime
      */
-    public function __construct(RequestAdapterInterface $adapter, Request $request, $property, \DateTime $startTime)
-    {
-        $this->adapter   = $adapter;
-        $this->request   = $request;
-        $this->property  = $property;
-        $this->startTime = $startTime;
+    public function __construct(
+        EventDispatcherInterface $eventDispatcher,
+        RequestAdapterInterface $adapter,
+        Request $request,
+        $property,
+        \DateTime $startTime
+    ) {
+        $this->eventDispatcher = $eventDispatcher;
+        $this->adapter         = $adapter;
+        $this->request         = $request;
+        $this->property        = $property;
+        $this->startTime       = $startTime;
     }
 
     /**
      * @return array
      */
-    public function getNext()
+    public function next()
     {
         $this->request->setParams([
             'start_time' => $this->startTime->getTimestamp(),
@@ -106,8 +121,15 @@ class IncrementalPager
                 $items = [];
             }
 
+            $this->eventDispatcher->dispatch(
+                ProgressEvent::POST_STEP_IMPORT,
+                new ProgressEvent(null, ['offset' => [$this->property => $this->startTime->getTimestamp()]])
+            );
+
             // update start time for next request
-            $this->startTime = new \DateTime("@{$result->end_time}");
+            $this->startTime = $result->end_time
+                ? new \DateTime("@{$result->end_time}")
+                : new \DateTime();
         }
 
         // prevent infinity loops
@@ -120,19 +142,5 @@ class IncrementalPager
         $this->lastHash   = $hash;
 
         return $items;
-    }
-
-    /**
-     * @param mixed $pager
-     *
-     * @return \Generator
-     */
-    public static function getIterator($pager)
-    {
-        while ($data = $pager->getNext()) {
-            foreach ($data as $n) {
-                yield $n;
-            }
-        }
     }
 }
