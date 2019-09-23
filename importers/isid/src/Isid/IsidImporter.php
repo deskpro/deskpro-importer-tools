@@ -89,6 +89,7 @@ class IsidImporter extends AbstractImporter
         $this->gatherBrands();
 
         $csv = $this->csv()->readFile($this->config['csv_path'], ',', '"');
+        $customDateKey = $this->config['date_key'];
         $tickets = [];
         $people = [];
         foreach($csv as $index => $datum) {
@@ -97,7 +98,7 @@ class IsidImporter extends AbstractImporter
             $answers = [];
             if($datum['answer']) {
                 $answersPath = sprintf('%s%s%s', $this->config['tickets_path'],DIRECTORY_SEPARATOR, $datum['answer']);
-                $answers = $this->collectMessages($answersPath, $datum['custom_data444'], 'answer');
+                $answers = $this->collectMessages($answersPath, $datum[$customDateKey], 'answer');
             }
             $answersCount = count($answers);
             $answermemo = [];
@@ -115,7 +116,7 @@ class IsidImporter extends AbstractImporter
             }
             if($datum['question']) {
                 $questionsPath = sprintf('%s%s%s', $this->config['tickets_path'], DIRECTORY_SEPARATOR, $datum['question']);
-                $questions     = $this->collectMessages($questionsPath, $datum['custom_data444']);
+                $questions     = $this->collectMessages($questionsPath, $datum[$customDateKey]);
             }
             $messages = $this->combineMessages($questions, $answers);
 
@@ -132,7 +133,7 @@ class IsidImporter extends AbstractImporter
                 'person' => $datum['user'],
                 'ref' => $datum['ticket_id'],
                 'urgency' => $datum['urgency'],
-                'date_created' => $this->formatter()->getFormattedDate($datum['custom_data444']),
+                'date_created' => $this->formatter()->getFormattedDate($datum[$customDateKey]),
                 'subject' => $subject,
                 'labels' => [$datum['label']],
                 'department' => $this->getDepartment($datum['department']),
