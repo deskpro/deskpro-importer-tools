@@ -120,10 +120,7 @@ class IsidImporter extends AbstractImporter
             }
             $messages = $this->combineMessages($questions, $answers);
 
-            if(!$messages) {
-                $this->logEmptyMessages($datum);
-                continue;
-            }
+
             $subject = trim($datum['subject']) ?: explode("\n", $messages[0]['text'])[0];
             $people[$datum['agent']] = ['email' => $datum['agent'], 'is_agent' => 1];
             $people[$datum['user']] = ['email' => $datum['user'], 'is_agent' => 0];
@@ -164,6 +161,7 @@ class IsidImporter extends AbstractImporter
                     'message' => file_get_contents($this->config['tickets_path'].DIRECTORY_SEPARATOR.$datum['receiptmemo']),
                 ]);
             }
+
             foreach($answermemo as $m) {
                 if(!$m['date']) {
                     $ticket['messages'][] = [
@@ -175,6 +173,11 @@ class IsidImporter extends AbstractImporter
                         'is_note' => true,
                     ];
                }
+            }
+
+            if(!$ticket['messages']) {
+                $this->logEmptyMessages($datum);
+                continue;
             }
 
             $customFields = [];
