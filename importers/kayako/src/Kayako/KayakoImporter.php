@@ -62,7 +62,8 @@ class KayakoImporter extends AbstractImporter
      *
      * @return void
      */
-    protected function organizationImport($offset) {
+    protected function organizationImport($offset)
+    {
         $this->progress()->startOrganizationImport();
 
         if ($this->db()->tableExists('swuserorganizations')) {
