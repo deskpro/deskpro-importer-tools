@@ -226,7 +226,7 @@ class ZendeskImporter extends AbstractImporter
                     'person'       => $c['author_id'],
                     'message'      => $c['html_body'],
                     'is_note'      => !$c['public'],
-                    'date_created' => $n['created_at'],
+                    'date_created' => $c['created_at'],
                 ];
 
                 foreach ($c['attachments'] as $a) {
