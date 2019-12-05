@@ -80,9 +80,8 @@ class IsidImporter extends AbstractImporter
     /**
      * {@inheritdoc}
      */
-    public function runImport()
+    public function runImport($importedSteps = [], $offsets = [])
     {
-
         $this->gatherCustomFields();
         $this->gatherLanguages();
         $this->gatherDepartments();
@@ -447,4 +446,11 @@ class IsidImporter extends AbstractImporter
     private function logEmptyMessages($datum) {
         echo sprintf('The ticket #%s has no messages!%s', $datum['ticket_id'], PHP_EOL);
     }
+
+    protected function getImportSteps()
+    {
+        return [];
+    }
+
+
 }
