@@ -317,11 +317,17 @@ class KayakoImporter extends AbstractImporter
             }
 
             $ticket = [
-                'ref'          => $n['ticketmaskid'],
-                'subject'      => $n['subject'] ?: 'No subject',
-                'person'       => $person,
-                'agent'        => $this->writer()->agentOid($n['staffid']),
-                'date_created' => date('c', $n['dateline']),
+                'ref'           => $n['ticketmaskid'],
+                'subject'       => $n['subject'] ?: 'No subject',
+                'person'        => $person,
+                'agent'         => $this->writer()->agentOid($n['staffid']),
+                'date_created'  => date('c', $n['dateline']),
+                'custom_fields' => [
+                    [
+                        'name'  => 'Original ID',
+                        'value' => $n['ticketid'],
+                    ],
+                ],
             ];
 
             if (isset($ticketDepartmentMapping[$n['departmentid']])) {
@@ -686,12 +692,18 @@ class KayakoImporter extends AbstractImporter
             );
             foreach ($pager as $n) {
                 $chat = [
-                    'person'       => $n['userid'] ? $this->writer()->userOid($n['userid']) : $n['useremail'],
-                    'agent'        => $this->writer()->agentOid($n['staffid']),
-                    'date_created' => date('c', $n['dateline']),
-                    'date_ended'   => $n['lastpostactivity'] ? date('c', $n['lastpostactivity']) : date('c', $n['dateline']),
-                    'ended_by'     => 'user',
-                    'messages'     => [],
+                    'person'        => $n['userid'] ? $this->writer()->userOid($n['userid']) : $n['useremail'],
+                    'agent'         => $this->writer()->agentOid($n['staffid']),
+                    'date_created'  => date('c', $n['dateline']),
+                    'date_ended'    => $n['lastpostactivity'] ? date('c', $n['lastpostactivity']) : date('c', $n['dateline']),
+                    'ended_by'      => 'user',
+                    'messages'      => [],
+                    'custom_fields' => [
+                        [
+                            'name'  => 'Original ID',
+                            'value' => $n['chatobjectid'],
+                        ],
+                    ],
                 ];
 
                 if (isset($n['subject'])) {
