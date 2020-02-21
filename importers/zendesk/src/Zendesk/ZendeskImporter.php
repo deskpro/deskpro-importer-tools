@@ -119,11 +119,16 @@ class ZendeskImporter extends AbstractImporter
     }
 
     /**
+     * @param \DateTime $offset
+     *
      * @return void
+     * @throws \Exception
      */
-    protected function organizationImport() {
+    protected function organizationImport($offset) {
         $this->progress()->startOrganizationImport();
-        foreach ($this->reader->getOrganizations() as $n) {
+        $pager = $this->reader->getOrganizationPager($offset);
+
+        foreach ($pager as $n) {
             $organization = [
                 'name'         => $n['name'],
                 'date_created' => $n['created_at'],
