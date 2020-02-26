@@ -54,4 +54,15 @@ class Organization extends AbstractHelper
     {
         return $this->client->organizations()->findAll();
     }
+
+    /**
+     * @param array $params
+     *
+     * @return array
+     * @throws \Zendesk\API\Exceptions\RouteException
+     */
+    public function incrementalExport(array $params = [])
+    {
+        return $this->client->incremental()->organizations($params);
+    }
 }

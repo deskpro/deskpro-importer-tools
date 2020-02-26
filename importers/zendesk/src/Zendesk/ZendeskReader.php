@@ -169,6 +169,24 @@ class ZendeskReader
     }
 
     /**
+     * Returns a batch of the users collection.
+     *
+     * @param \DateTime $startTime
+     *
+     * @throws RetryAfterException
+     *
+     * @return \Generator
+     */
+    public function getOrganizationPager(\DateTime $startTime)
+    {
+        $request = new Request(CoreAPI\Organization::class, 'incrementalExport');
+
+        return IncrementalPager::getIterator(
+            new IncrementalPager($this->eventDispatcher, $this->adapter, $request, 'organizations', $startTime)
+        );
+    }
+
+    /**
      * Returns organization fields collection.
      *
      * @return mixed
