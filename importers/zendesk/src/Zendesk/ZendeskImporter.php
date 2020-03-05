@@ -9,6 +9,8 @@ use DeskPRO\ImporterTools\AbstractImporter;
  */
 class ZendeskImporter extends AbstractImporter
 {
+    const DEFAULT_OFFSET = '-2 years';
+
     /**
      * @var ZendeskReader
      */
@@ -36,13 +38,19 @@ class ZendeskImporter extends AbstractImporter
     {
         if (!isset($config['start_time'])) {
             // default time offset
-            $config['start_time'] = '-2 years';
+            $config['start_time'] = self::DEFAULT_OFFSET;
         }
 
         if ($config['start_time'] instanceof \DateTime) {
             $this->startTime = $config['start_time'];
+        } elseif (is_string($config['start_time'])) {
+            try {
+                $this->startTime = new \DateTime($config['start_time']);
+            } catch (\Exception $e) {
+                $this->startTime = new \DateTime(self::DEFAULT_OFFSET);
+            }
         } else {
-            $this->startTime = new \DateTime($config['start_time']);
+            $this->startTime = new \DateTime(self::DEFAULT_OFFSET);
         }
 
         $this->reader = new ZendeskReader($this->logger, $this->container->get('dp.importer.event_dispatcher'));
