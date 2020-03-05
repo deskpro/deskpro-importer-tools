@@ -39,11 +39,16 @@ class ZendeskImporter extends AbstractImporter
             $config['start_time'] = '-2 years';
         }
 
+        if ($config['start_time'] instanceof \DateTime) {
+            $this->startTime = $config['start_time'];
+        } else {
+            $this->startTime = new \DateTime($config['start_time']);
+        }
+
         $this->reader = new ZendeskReader($this->logger, $this->container->get('dp.importer.event_dispatcher'));
         $this->reader->setConfig($config['account']);
         $this->writer()->setOidPrefix($config['account']['subdomain']);
 
-        $this->startTime        = new \DateTime($config['start_time']);
         $this->ticketBrandField = !empty($config['ticket_brand_field']) ? $config['ticket_brand_field'] : null;
     }
 
@@ -124,7 +129,8 @@ class ZendeskImporter extends AbstractImporter
      * @return void
      * @throws \Exception
      */
-    protected function organizationImport($offset) {
+    protected function organizationImport($offset)
+    {
         $this->progress()->startOrganizationImport();
         $pager = $this->reader->getOrganizationPager($offset);
 
