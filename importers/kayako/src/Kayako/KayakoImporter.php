@@ -322,6 +322,7 @@ class KayakoImporter extends AbstractImporter
                 'person'        => $person,
                 'agent'         => $this->writer()->agentOid($n['staffid']),
                 'date_created'  => date('c', $n['dateline']),
+                'date_resolved' => date('c', $n['resolutiondateline']),
                 'custom_fields' => [
                     [
                         'name'  => 'Original ID',
