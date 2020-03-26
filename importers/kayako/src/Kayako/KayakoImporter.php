@@ -353,6 +353,10 @@ class KayakoImporter extends AbstractImporter
                 $ticket['is_hold'] = true;
             }
 
+            if (isset($n['tickettypetitle']) && $n['tickettypetitle']) {
+                $ticket['category'] = $n['tickettypetitle'];
+            }
+
             // get ticket messages
             $messagePager = $this->db()->getPager(
                 'ticket_messages',
