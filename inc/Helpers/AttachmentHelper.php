@@ -73,6 +73,7 @@ class AttachmentHelper
     {
         $urls = [];
 
+        libxml_clear_errors();
         libxml_use_internal_errors(true);
         $document = new \DOMDocument();
         $document->loadHTML($content);
@@ -83,6 +84,8 @@ class AttachmentHelper
         for ($i = 0; $i < $images->length; $i++) {
             $urls[] = $images->item($i)->getAttribute('src');
         }
+
+        unset($document);
 
         return $urls;
     }
@@ -110,6 +113,7 @@ class AttachmentHelper
      */
     public function replaceInlineImage($content, $url, $oid)
     {
+        libxml_clear_errors();
         libxml_use_internal_errors(true);
         $document = new \DOMDocument();
         $document->loadHTML($content);
@@ -125,6 +129,9 @@ class AttachmentHelper
             }
         }
 
-        return $document->saveHTML();
+        $newContent = $document->saveHTML();
+        unset($document);
+
+        return $newContent;
     }
 }

@@ -414,6 +414,7 @@ class KayakoImporter extends AbstractImporter
                         'file_name'    => $a['filename'] ?: ('attachment'.$a['attachmentid']),
                         'content_type' => $a['filetype'],
                         'blob_data'    => '',
+                        'content_id'   => $a['contentid'],
                     ];
 
                     $attachmentChunks = $this->db()->findAll('SELECT * FROM swattachmentchunks WHERE attachmentid = :attachment_id', [
@@ -441,22 +442,45 @@ class KayakoImporter extends AbstractImporter
                 // get inline attachments
                 $inlineUrls = $this->attachments()->parseInlineImages($message['message']);
                 foreach ($inlineUrls as $inlineNum => $inlineUrl) {
-                    $blobId      = $inlineNum + 1;
-                    $contentType = $this->attachments()->getImageContentType($inlineUrl);
-                    $blobData    = $this->attachments()->loadAttachment($inlineUrl);
+                    if (preg_match('#^cid:(.*)#', $inlineUrl, $matches)) {
+                        foreach ($message['attachments'] as $num => $attachment) {
+                            if ($attachment['content_id'] === $matches[1]) {
+                                $message['message'] = $this->attachments()->replaceInlineImage(
+                                    $message['message'],
+                                    $inlineUrl,
+                                    $attachment['oid']
+                                );
 
-                    if (!$blobData) {
-                        continue;
+                                $message['attachments'][$num]['is_inline'] = 1;
+                            }
+                        }
+                    } else {
+                        $blobId      = $inlineNum + 1;
+                        $contentType = $this->attachments()->getImageContentType($inlineUrl);
+                        $blobData    = $this->attachments()->loadAttachment($inlineUrl);
+
+                        if (!$blobData) {
+                            continue;
+                        }
+
+                        $message['message'] = $this->attachments()->replaceInlineImage(
+                            $message['message'],
+                            $inlineUrl,
+                            $blobId
+                        );
+
+                        $message['attachments'][] = [
+                            'oid'          => $blobId,
+                            'file_name'    => $inlineUrl,
+                            'content_type' => $contentType,
+                            'blob_data'    => $blobData,
+                            'is_inline'    => 1,
+                        ];
                     }
+                }
 
-                    $message['message']       = $this->attachments()->replaceInlineImage($message['message'], $inlineUrl, $blobId);
-                    $message['attachments'][] = [
-                        'oid'          => $blobId,
-                        'file_name'    => $inlineUrl,
-                        'content_type' => $contentType,
-                        'blob_data'    => $blobData,
-                        'is_inline'    => 1,
-                    ];
+                foreach ($message['attachments'] as $num => $attachment) {
+                    unset($message['attachments'][$num]['content_id']);
                 }
 
                 $ticket['messages'][] = $message;
