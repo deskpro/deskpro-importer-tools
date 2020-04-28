@@ -438,6 +438,27 @@ class KayakoImporter extends AbstractImporter
                     $message['attachments'][] = $attachment;
                 }
 
+                // get inline attachments
+                $inlineUrls = $this->attachments()->parseInlineImages($message['message']);
+                foreach ($inlineUrls as $inlineNum => $inlineUrl) {
+                    $blobId      = $inlineNum + 1;
+                    $contentType = $this->attachments()->getImageContentType($inlineUrl);
+                    $blobData    = $this->attachments()->loadAttachment($inlineUrl);
+
+                    if (!$blobData) {
+                        continue;
+                    }
+
+                    $message['message']       = $this->attachments()->replaceInlineImage($message['message'], $inlineUrl, $blobId);
+                    $message['attachments'][] = [
+                        'oid'          => $blobId,
+                        'file_name'    => $inlineUrl,
+                        'content_type' => $contentType,
+                        'blob_data'    => $blobData,
+                        'is_inline'    => 1,
+                    ];
+                }
+
                 $ticket['messages'][] = $message;
             }
 

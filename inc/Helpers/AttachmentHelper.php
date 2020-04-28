@@ -63,4 +63,68 @@ class AttachmentHelper
             return;
         }
     }
+
+    /**
+     * @param string $content
+     *
+     * @return string[]
+     */
+    public function parseInlineImages($content)
+    {
+        $urls = [];
+
+        libxml_use_internal_errors(true);
+        $document = new \DOMDocument();
+        $document->loadHTML($content);
+
+        $xpath  = new \DOMXPath($document);
+        $images = $xpath->query('//img');
+
+        for ($i = 0; $i < $images->length; $i++) {
+            $urls[] = $images->item($i)->getAttribute('src');
+        }
+
+        return $urls;
+    }
+
+    /**
+     * @param $url
+     *
+     * @return string|void
+     */
+    public function getImageContentType($url)
+    {
+        if (preg_match('#.(png|gif|jpg|jpeg|bmp)($|@)#', $url, $m)) {
+            return 'image/'.$m[1];
+        }
+
+        return 'image/png';
+    }
+
+    /**
+     * @param string $content
+     * @param string $url
+     * @param int    $oid
+     *
+     * @return string
+     */
+    public function replaceInlineImage($content, $url, $oid)
+    {
+        libxml_use_internal_errors(true);
+        $document = new \DOMDocument();
+        $document->loadHTML($content);
+
+        $xpath  = new \DOMXPath($document);
+        $images = $xpath->query('//img');
+
+        for ($i = 0; $i < $images->length; $i++) {
+            $item = $images->item($i);
+            if ($url === $item->getAttribute('src')) {
+                $placeholder = $document->createTextNode("[attach:$oid:$url]");
+                $item->parentNode->replaceChild($placeholder, $item);
+            }
+        }
+
+        return $document->saveHTML();
+    }
 }
