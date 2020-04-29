@@ -31,6 +31,7 @@ namespace DeskPRO\ImporterTools\Helpers;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
+use Psr\Log\LoggerInterface;
 
 /**
  * Class AttachmentHelper.
@@ -43,11 +44,19 @@ class AttachmentHelper
     private $client;
 
     /**
-     * Constructor.
+     * @var LoggerInterface
      */
-    public function __construct()
+    private $logger;
+
+    /**
+     * Constructor.
+     *
+     * @param LoggerInterface $logger
+     */
+    public function __construct(LoggerInterface $logger = null)
     {
         $this->client = new Client();
+        $this->logger = $logger;
     }
 
     /**
@@ -57,9 +66,30 @@ class AttachmentHelper
      */
     public function loadAttachment($url)
     {
+        $t = microtime(true);
+        if ($this->logger) {
+            $this->logger->info("Loading attachment: $url");
+        }
+
         try {
-            return base64_encode($this->client->send(new Request('GET', $url))->getBody()->getContents());
+            $request = new Request('GET', $url);
+            $options = [
+                'connect_timeout' => 5,
+                'timeout'         => 5,
+            ];
+
+            $content = base64_encode($this->client->send($request, $options)->getBody()->getContents());
+            if ($this->logger) {
+                $this->logger->info('Attachment is loaded successfully, took='. (microtime(true) - $t).'s');
+            }
+
+            return $content;
         } catch (\Exception $e) {
+            if ($this->logger) {
+                $this->logger->error("Unable to load attachment: $url, took=".(microtime(true) - $t).'s');
+                $this->logger->error($e->getMessage());
+            }
+
             return;
         }
     }
