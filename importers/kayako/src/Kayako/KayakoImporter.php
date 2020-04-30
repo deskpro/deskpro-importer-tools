@@ -448,7 +448,8 @@ class KayakoImporter extends AbstractImporter
                                 $message['message'] = $this->attachments()->replaceInlineImage(
                                     $message['message'],
                                     $inlineUrl,
-                                    $attachment['oid']
+                                    $attachment['oid'],
+                                    $attachment['file_name']
                                 );
 
                                 $message['attachments'][$num]['is_inline'] = 1;
@@ -457,6 +458,7 @@ class KayakoImporter extends AbstractImporter
                     } else {
                         $blobId      = $inlineNum + 1;
                         $contentType = $this->attachments()->getImageContentType($inlineUrl);
+                        $filename    = $this->attachments()->getImageFilenameFromUrl($inlineUrl);
                         $blobData    = $this->attachments()->loadAttachment($inlineUrl);
 
                         if (!$blobData) {
@@ -466,12 +468,13 @@ class KayakoImporter extends AbstractImporter
                         $message['message'] = $this->attachments()->replaceInlineImage(
                             $message['message'],
                             $inlineUrl,
-                            $blobId
+                            $blobId,
+                            $filename
                         );
 
                         $message['attachments'][] = [
                             'oid'          => $blobId,
-                            'file_name'    => $inlineUrl,
+                            'file_name'    => $filename,
                             'content_type' => $contentType,
                             'blob_data'    => $blobData,
                             'is_inline'    => 1,

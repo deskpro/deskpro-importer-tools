@@ -135,13 +135,30 @@ class AttachmentHelper
     }
 
     /**
-     * @param string $content
      * @param string $url
-     * @param int    $oid
      *
      * @return string
      */
-    public function replaceInlineImage($content, $url, $oid)
+    public function getImageFilenameFromUrl($url)
+    {
+        if (preg_match('/.*\/([^?]+)/', $url, $matches)) {
+            if (isset($matches[1])) {
+                return $matches[1];
+            }
+        }
+
+        return $url;
+    }
+
+    /**
+     * @param string $content
+     * @param string $url
+     * @param int    $oid
+     * @param string $filename
+     *
+     * @return string
+     */
+    public function replaceInlineImage($content, $url, $oid, $filename)
     {
         libxml_clear_errors();
         libxml_use_internal_errors(true);
@@ -154,7 +171,7 @@ class AttachmentHelper
         for ($i = 0; $i < $images->length; $i++) {
             $item = $images->item($i);
             if ($url === $item->getAttribute('src')) {
-                $placeholder = $document->createTextNode("[attach:$oid:$url]");
+                $placeholder = $document->createTextNode("[attach:$oid:$filename]");
                 $item->parentNode->replaceChild($placeholder, $item);
             }
         }
