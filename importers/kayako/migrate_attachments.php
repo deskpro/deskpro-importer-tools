@@ -37,24 +37,30 @@ try {
                 continue;
             }
 
-            $content = file_get_contents($filepath);
-            if (!$content) {
-                echo "Unable to get content of $filepath\n";
-                continue;
-            }
-
             try {
+                $connection->beginTransaction();
+
                 $delete = $connection->prepare('DELETE FROM swattachmentchunks WHERE attachmentid = ?');
                 $delete->execute([$attachment['attachmentid']]);
-            } catch (\Exception $e) {
-                echo $e->getMessage()."\n";
-                continue;
-            }
 
-            try {
-                $insert = $connection->prepare('INSERT IGNORE INTO swattachmentchunks (attachmentid, contents, notbase64) VALUES (?, ?, ?)');
-                $insert->execute([$attachment['attachmentid'], $content, 1]);
+                $i  = 1;
+                $fp = fopen($filepath,'r');
+                while (!feof($fp)) {
+                    $content = fread($fp,1000000);
+
+                    try {
+                        $insert = $connection->prepare('INSERT IGNORE INTO swattachmentchunks (attachmentid, contents, notbase64) VALUES (?, ?, ?)');
+                        $insert->execute([$attachment['attachmentid'], $content, 1]);
+                    } catch (\Exception $e) {
+                        echo $e->getMessage()."\n";
+                    }
+
+                    $i++;
+                }
+
+                $connection->commit();
             } catch (\Exception $e) {
+                $connection->rollBack();
                 echo $e->getMessage()."\n";
             }
         }
