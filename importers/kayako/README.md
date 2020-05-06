@@ -14,15 +14,21 @@ After this tool completes, you will run the standard DeskPRO import process to s
 * Tickets (status, subject, person, agent, department)
 * Ticket Messages
 * Ticket (Agent) Notes
+* Ticket Attachments
 * Knowledgebase (Categories & Articles)
 * News
+* Chat Conversations
 
 **Via Command Line**
 
 Prepare your importer config:
 
-* Rename the config file from `/path/to/deskpro/config/importer/kayako.dist.php` to `/path/to/deskpro/config/importer/kayako.php`
-* Edit the config values in the `/path/to/deskpro/config/importer/kayako.php`
+Create the config file:
+
+    $ cd /path/to/deskpro/app/BUILD/modules/importer-tools/importers/kayako
+    $ cp config.dist.php config.php
+
+Edit the config values in the `/path/to/deskpro/app/BUILD/modules/importer-tools/importers/kayako/config.php`
 
 Run the import process to fetch all of your data from Kayako:
 
@@ -46,3 +52,23 @@ And finally, you can clean up the temporary data files from the filesystem:
 * Navigate `Admin > Apps > Importer` in the Admin Interface.
 * Select importer type `Kayako`.
 * Fill the config form and start the import process.
+
+**Import attachments from filesystem**
+
+We can only import ticket attachments if they are stored in the database, i.e. `swattachmentchunks` table.
+
+So if you use filesystem for your ticket attachments you need to migrate them into your Kayako database first before running the import process.
+We've created a script that will help you to do that. To run the script you need to follow these steps:
+
+Create the config file:
+
+    $ cd /path/to/deskpro/app/BUILD/modules/importer-tools/importers/kayako
+    $ cp config.dist.php config.php
+
+Edit the config values in the `/path/to/deskpro/app/BUILD/modules/importer-tools/importers/kayako/config.php`.
+
+Copy `migrate_attachments.php` and `config.php` to the Kayako root dir.
+
+Run the migration script:
+
+    $ php migrate_attachments.php
