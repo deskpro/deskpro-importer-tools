@@ -1,18 +1,21 @@
 <?php
 
-// #######################
-// Edit DB config
-// #######################
+if (file_exists('config.php')) {
+    require_once 'config.php';
+} else {
+    echo "Unable to load the config file, config.php is missing\n";
+    echo "It should be placed in the same directory as the migration script.\n";
+    exit;
+}
 
-$host     = 'localhost';
-$dbname   = 'kayako';
-$username = 'root';
-$password = '';
-
-// #######################
+$host     = @$CONFIG['dbinfo']['host'];
+$port     = @$CONFIG['dbinfo']['port'];
+$dbname   = @$CONFIG['dbinfo']['dbname'];
+$username = @$CONFIG['dbinfo']['user'];
+$password = @$CONFIG['dbinfo']['password'];
 
 try {
-    $connection = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $connection = new PDO("mysql:host=$host;port=$port;dbname=$dbname", $username, $password);
     $connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     echo "Connected successfully\n";
 
