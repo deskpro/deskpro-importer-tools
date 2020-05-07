@@ -322,7 +322,6 @@ class KayakoImporter extends AbstractImporter
                 'person'        => $person,
                 'agent'         => $n['ownerstaffid'] ? $this->writer()->agentOid($n['ownerstaffid']) : $this->writer()->agentOid($n['staffid']),
                 'date_created'  => date('c', $n['dateline']),
-                'date_resolved' => date('c', $n['resolutiondateline']),
                 'custom_fields' => [
                     [
                         'name'  => 'Original ID',
@@ -330,6 +329,10 @@ class KayakoImporter extends AbstractImporter
                     ],
                 ],
             ];
+
+            if ($n['resolutiondateline']) {
+                $ticket['date_resolved'] = date('c', $n['resolutiondateline']);
+            }
 
             if (isset($ticketDepartmentMapping[$n['departmentid']])) {
                 $ticket['department'] = $ticketDepartmentMapping[$n['departmentid']];
