@@ -29,6 +29,7 @@
 
 namespace DeskPRO\ImporterTools\Helpers;
 
+use DeskPRO\Component\Util\IpUtils;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 use Psr\Log\LoggerInterface;
@@ -69,6 +70,14 @@ class AttachmentHelper
         $t = microtime(true);
         if ($this->logger) {
             $this->logger->info("Loading attachment: $url");
+        }
+
+        if (!IpUtils::isUrlUserCallable($url)) {
+            if ($this->logger) {
+                $this->logger->info("URL is not user callable: $url");
+            }
+
+            return;
         }
 
         try {
