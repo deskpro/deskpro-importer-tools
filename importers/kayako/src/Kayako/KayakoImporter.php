@@ -2,6 +2,7 @@
 
 namespace DeskPRO\ImporterTools\Importers\Kayako;
 
+use DeskPRO\Component\Util\UnserializeUtil;
 use DeskPRO\ImporterTools\AbstractImporter;
 
 /**
@@ -775,7 +776,7 @@ class KayakoImporter extends AbstractImporter
                     'chat_id' => $n['chatobjectid'],
                 ]);
 
-                $chatMessages = @unserialize($chatData['contents']);
+                $chatMessages = UnserializeUtil::safeUnserialize($chatData['contents']);
                 if (is_array($chatMessages)) {
                     foreach ($chatMessages as $messageId => $m) {
                         if ($m['actiontype'] !== 'message') {
